@@ -41,6 +41,13 @@ function tx(store, mode, fn) {
 
 // ---- 初始化：首次启动写入内置分类 ----
 export async function initDB() {
+  // 申请持久化存储：防止 iOS Safari 清理长期站点的数据（需 HTTPS + 用户交互后大概率批准）
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const granted = await navigator.storage.persist();
+      if (!granted) console.warn('持久化存储未批准，建议将本应用添加到主屏幕');
+    }
+  } catch (e) { /* 忽略，不影响功能 */ }
   const db = await openDB();
   await new Promise((resolve, reject) => {
     const t = db.transaction('Category', 'readonly');
@@ -86,6 +93,31 @@ export async function addTransaction({ type, amountInCents, categoryId, note, da
 
 export async function updateTransaction(t) {
   return tx('Transaction', 'readwrite', (s) => s.put(t));
+}
+
+// 云端同步用：以指定 id 写入（云端 id 为准）
+export async function putTransaction(t) {
+  return tx('Transaction', 'readwrite', (s) => s.put(t));
+}
+
+export async function putCategory(c) {
+  return tx('Category', 'readwrite', (s) => s.put(c));
+}
+
+// 云端全量覆盖本地：清空后按云端数据回写
+export async function replaceAll(categories, transactions) {
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const t = db.transaction(['Transaction', 'Category'], 'readwrite');
+    t.objectStore('Transaction').clear();
+    t.objectStore('Category').clear();
+    const ts = t.objectStore('Transaction');
+    for (const tr of transactions) ts.put({ ...tr });
+    const cs = t.objectStore('Category');
+    for (const c of categories) cs.put({ ...c });
+    t.oncomplete = resolve;
+    t.onerror = () => reject(t.error);
+  });
 }
 
 export async function deleteTransaction(id) {

@@ -7,8 +7,9 @@ import {
 import * as db from './db.js';
 import {
   loadSettings, saveSettings, backupToGitHub, restoreFromGitHub,
-  getToken, setToken, maskToken
+  getToken, setToken, setPassword, maskToken
 } from './backup.js';
+import * as cloud from './cloud.js';
 import { registerSW } from './sw-register.js';
 
 const state = {
@@ -313,7 +314,21 @@ function renderCategories() {
 // ---------- 设置页 ----------
 function renderSettings() {
   const s = loadSettings();
+  const syncInfo = cloud.lastSyncInfo();
+  const syncStatus = !cloud.isConfigured()
+    ? '<span style="color:var(--expense)">未配置：填入访问密码后开始云端同步</span>'
+    : (syncInfo ? (syncInfo.ok
+      ? `上次同步成功：${new Date(syncInfo.at).toLocaleString('zh-CN')}（${syncInfo.txs} 笔账单）`
+      : `<span style="color:var(--expense)">上次同步失败：${esc(syncInfo.msg || '网络不可用')}（离线模式，改动已保存本地）</span>`)
+      : '尚未同步');
   return `<div class="page">
+    <div class="section-title">云端同步</div>
+    <div class="form-group">
+      <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(s.apiBase || '')}"></div>
+      <div class="form-row"><label>访问密码</label><input id="setAuthPwd" type="password" placeholder="${s.password || s.passwordSealed ? '已保存，输入新值可替换' : '填入访问密码后开始云端同步'}" value=""></div>
+    </div>
+    <div class="status-text">${syncStatus}</div>
+    <div class="status-text">数据以云端为主存储，本机 IndexedDB 作为离线缓存；网络不可用时改动保存本地，恢复后自动同步。</div>
     <div class="section-title">GitHub 加密备份</div>
     <div class="form-group">
       <div class="form-row"><label>Personal Access Token</label><input id="setToken" type="password" placeholder="${s.tokenSealed ? '已保存（' + esc(maskToken(s.tokenSealed)) + '），输入新值可替换' : 'ghp_ 或 github_pat_...'}" value=""></div>
@@ -361,7 +376,7 @@ function bindPageEvents() {
       const id = Number(el.dataset.delcat);
       const used = state.transactions.some((t) => t.categoryId === id);
       if (await confirmDialog(used ? '该分类下已有账单，删除后账单将显示为「未知分类」，确定删除？' : '确定删除该分类？')) {
-        await db.deleteCategory(id);
+        await cloud.deleteCategory(id);
         await reload();
         toast('已删除');
       }
@@ -382,7 +397,7 @@ function bindPageEvents() {
   // 设置页
   const backupBtn = document.getElementById('backupBtn');
   if (backupBtn) {
-    const inputs = ['setToken', 'setRepo', 'setPath', 'setBranch', 'setPassword', 'setBudget'];
+    const inputs = ['setToken', 'setRepo', 'setPath', 'setBranch', 'setPassword', 'setBudget', 'setApiBase', 'setAuthPwd'];
     inputs.forEach((id) => {
       const el = document.getElementById(id);
       el.addEventListener('change', async () => {
@@ -395,9 +410,23 @@ function bindPageEvents() {
         s.repo = document.getElementById('setRepo').value.trim();
         s.path = document.getElementById('setPath').value.trim() || 'backup/bookkeep.json';
         s.branch = document.getElementById('setBranch').value.trim() || 'main';
+        const apiBaseEl = document.getElementById('setApiBase');
+        if (apiBaseEl) s.apiBase = apiBaseEl.value.trim();
+        const authPwdEl = document.getElementById('setAuthPwd');
+        const syncChanged = apiBaseEl && document.activeElement === apiBaseEl || authPwdEl && document.activeElement === authPwdEl;
+        if (authPwdEl && authPwdEl.value) s = await setPassword(s, authPwdEl.value);
         saveSettings(s);
         localStorage.setItem('bk_monthly_budget', document.getElementById('setBudget').value || '0');
         toast('设置已保存（敏感信息已加密存储）');
+        if (syncChanged) {
+          try {
+            const r = await cloud.sync();
+            if (r.status === 'ok') { toast('✅ 云端同步成功'); await reload(); }
+            else if (r.status === 'noauth') toast('请填写访问密码以开始云端同步', 4000);
+            else if (r.status === 'offline') toast('当前离线，改动已保存本地', 4000);
+            if (state.tab === 'settings') render();
+          } catch (e) { /* 同步失败已在 sync 内记录 */ }
+        }
       });
     });
     backupBtn.addEventListener('click', async () => {
@@ -464,7 +493,7 @@ async function showTxDetail(id) {
   mask.addEventListener('click', (e) => { if (e.target === mask) mask.remove(); });
   mask.querySelector('#txDel').addEventListener('click', async () => {
     if (await confirmDialog('确定删除该账单？')) {
-      await db.deleteTransaction(id);
+      await cloud.deleteTransaction(id);
       mask.remove();
       await reload();
       toast('已删除');
@@ -517,7 +546,7 @@ async function showAddCategory() {
       return toast('同名分类已存在');
     }
     const maxSort = Math.max(0, ...state.categories.filter((c) => c.type === type).map((c) => c.sortOrder));
-    await db.addCategory({ name, icon, type, sortOrder: maxSort + 1 });
+    await cloud.addCategory({ name, icon, type, sortOrder: maxSort + 1 });
     mask.remove();
     await reload();
     toast('已添加');
@@ -571,7 +600,7 @@ async function saveAdd() {
   if (addCategoryId === null) return toast('请选择分类');
   const dateStr = document.getElementById('dateInput').value;
   const date = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : Date.now();
-  await db.addTransaction({
+  await cloud.addTransaction({
     type: addType,
     amountInCents: amount,
     categoryId: addCategoryId,
@@ -639,6 +668,22 @@ function init() {
 async function initDBAndRender() {
   await db.initDB();
   await reload();
+  // 云端为主：启动时全量同步，失败则离线模式（沿用本地数据）
+  try {
+    const r = await cloud.sync();
+    if (r.status === 'ok') {
+      await reload();
+    } else if (r.status === 'offline') {
+      toast('当前离线，使用本地数据', 4000);
+    }
+  } catch (e) { /* 保持本地数据 */ }
+  // 网络恢复时自动重试同步
+  window.addEventListener('online', async () => {
+    try {
+      const r = await cloud.sync();
+      if (r.status === 'ok') { toast('网络已恢复，云端同步完成'); await reload(); }
+    } catch (e) { /* 忽略 */ }
+  });
 }
 
 init();
