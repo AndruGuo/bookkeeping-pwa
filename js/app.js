@@ -6,7 +6,8 @@ import {
 } from './util.js';
 import * as db from './db.js';
 import {
-  loadSettings, saveSettings, backupToGitHub, restoreFromGitHub
+  loadSettings, saveSettings, backupToGitHub, restoreFromGitHub,
+  getToken, setToken, maskToken
 } from './backup.js';
 import { registerSW } from './sw-register.js';
 
@@ -315,7 +316,7 @@ function renderSettings() {
   return `<div class="page">
     <div class="section-title">GitHub 加密备份</div>
     <div class="form-group">
-      <div class="form-row"><label>Personal Access Token</label><input id="setToken" type="password" placeholder="ghp_..." value="${esc(s.token || '')}"></div>
+      <div class="form-row"><label>Personal Access Token</label><input id="setToken" type="password" placeholder="${s.tokenSealed ? '已保存（' + esc(maskToken(s.tokenSealed)) + '），输入新值可替换' : 'ghp_ 或 github_pat_...'}" value=""></div>
       <div class="form-row"><label>仓库</label><input id="setRepo" type="text" placeholder="owner/repo（私有仓库）" value="${esc(s.repo || '')}"></div>
       <div class="form-row"><label>文件路径</label><input id="setPath" type="text" placeholder="backup/bookkeep.json" value="${esc(s.path || 'backup/bookkeep.json')}"></div>
       <div class="form-row"><label>分支</label><input id="setBranch" type="text" placeholder="main" value="${esc(s.branch || 'main')}"></div>
@@ -384,24 +385,29 @@ function bindPageEvents() {
     const inputs = ['setToken', 'setRepo', 'setPath', 'setBranch', 'setPassword', 'setBudget'];
     inputs.forEach((id) => {
       const el = document.getElementById(id);
-      el.addEventListener('change', () => {
-        const s = loadSettings();
-        s.token = document.getElementById('setToken').value.trim();
+      el.addEventListener('change', async () => {
+        let s = loadSettings();
+        // token/密码仅在输入了新值时更新（输入框不回显旧值，留空即保持不变）
+        const newToken = document.getElementById('setToken').value.trim();
+        if (newToken) s = await setToken(s, newToken);
+        const newPwd = document.getElementById('setPassword').value;
+        if (newPwd) s = await setPassword(s, newPwd);
         s.repo = document.getElementById('setRepo').value.trim();
         s.path = document.getElementById('setPath').value.trim() || 'backup/bookkeep.json';
         s.branch = document.getElementById('setBranch').value.trim() || 'main';
-        s.password = document.getElementById('setPassword').value;
         saveSettings(s);
         localStorage.setItem('bk_monthly_budget', document.getElementById('setBudget').value || '0');
+        toast('设置已保存（敏感信息已加密存储）');
       });
     });
     backupBtn.addEventListener('click', async () => {
       const s = loadSettings();
-      if (!s.token || !s.repo) return toast('请先填写 Token 和仓库');
+      const token = await getToken(s);
+      if (!token || !s.repo) return toast('请先填写 Token 和仓库');
       if (!s.password) return toast('请设置加密密码');
       backupBtn.disabled = true;
       try {
-        const msg = await backupToGitHub(s);
+        const msg = await backupToGitHub({ ...s, token });
         toast('✅ ' + msg);
       } catch (e) {
         toast('备份失败：' + e.message, 4000);
@@ -411,11 +417,12 @@ function bindPageEvents() {
     });
     document.getElementById('restoreBtn').addEventListener('click', async () => {
       const s = loadSettings();
-      if (!s.token || !s.repo) return toast('请先填写 Token 和仓库');
+      const token = await getToken(s);
+      if (!token || !s.repo) return toast('请先填写 Token 和仓库');
       if (!s.password) return toast('请输入加密密码');
       if (!(await confirmDialog('恢复将覆盖本地全部数据，确定继续？'))) return;
       try {
-        const msg = await restoreFromGitHub(s);
+        const msg = await restoreFromGitHub({ ...s, token });
         toast('✅ ' + msg);
         await reload();
       } catch (e) {

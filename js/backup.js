@@ -4,6 +4,87 @@ import { exportAll, importAll } from './db.js';
 const LS_KEY = 'bk_backup_settings';
 const PBKDF2_ITERATIONS = 100000;
 
+// ---- 设备密钥（不可导出，存 IndexedDB，用于加密 token）----
+const KEY_DB = 'bk_keys', KEY_STORE = 'keys', KEY_ID = 'device-token-key';
+
+function openKeyDB() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(KEY_DB, 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore(KEY_STORE);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+async function withKeyStore(fn) {
+  const db = await openKeyDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(KEY_STORE, 'readwrite');
+    const rq = fn(tx.objectStore(KEY_STORE));
+    tx.oncomplete = () => res(rq && rq.result);
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+async function ensureDeviceKey() {
+  const existing = await withKeyStore(s => s.get(KEY_ID));
+  if (existing) return existing;
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  await withKeyStore(s => s.put(key, KEY_ID));
+  return key;
+}
+
+async function sealSecret(plain) {
+  const key = await ensureDeviceKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plain));
+  return b64(iv) + '.' + b64(ct);
+}
+
+async function openSecret(sealed) {
+  const key = await ensureDeviceKey();
+  const [ivB, ctB] = String(sealed).split('.');
+  if (!ivB || !ctB) throw new Error('bad secret');
+  const pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: unb64(ivB) }, key, unb64(ctB));
+  return new TextDecoder().decode(pt);
+}
+
+// 兼容读取：老版本明文 token 自动升级为密文
+export async function getToken(settings) {
+  if (!settings) return '';
+  if (settings.tokenSealed) return openSecret(settings.tokenSealed);
+  return settings.token || '';
+}
+
+export async function setToken(settings, plainToken) {
+  const s = { ...settings };
+  delete s.token;
+  if (plainToken) s.tokenSealed = await sealSecret(plainToken);
+  else delete s.tokenSealed;
+  return s;
+}
+
+export function maskToken(sealed) {
+  return sealed ? '••••••••••••' + String(sealed).slice(-6) : '';
+}
+
+async function sealAny(plain) { return sealSecret(plain); }
+
+export async function setPassword(settings, plainPassword) {
+  const s = { ...settings };
+  delete s.password;
+  if (plainPassword) s.passwordSealed = await sealAny(plainPassword);
+  else delete s.passwordSealed;
+  return s;
+}
+
+export async function getPassword(settings) {
+  if (!settings) return '';
+  if (settings.passwordSealed) return openSecret(settings.passwordSealed);
+  return settings.password || '';
+}
+
 export function loadSettings() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
   catch { return {}; }
