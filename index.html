@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="记账本">
+<meta name="theme-color" content="#FF8C26">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>记账本</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- 顶部导航 -->
+  <header class="nav-bar">
+    <button id="monthPrev" class="nav-btn" aria-label="上一月">‹</button>
+    <h1 id="navTitle">记账本</h1>
+    <button id="monthNext" class="nav-btn" aria-label="下一月">›</button>
+  </header>
+
+  <main id="pageContainer" class="page-container"></main>
+
+  <!-- 底部标签栏 -->
+  <nav class="tab-bar">
+    <button class="tab-item active" data-tab="home">
+      <span class="tab-icon">📋</span><span>明细</span>
+    </button>
+    <button class="tab-item" data-tab="stats">
+      <span class="tab-icon">📊</span><span>统计</span>
+    </button>
+    <button class="tab-add" id="addBtn" aria-label="记一笔">
+      <span>＋</span>
+    </button>
+    <button class="tab-item" data-tab="categories">
+      <span class="tab-icon">🏷️</span><span>分类</span>
+    </button>
+    <button class="tab-item" data-tab="settings">
+      <span class="tab-icon">⚙️</span><span>设置</span>
+    </button>
+  </nav>
+
+  <!-- 记一笔弹层 -->
+  <div id="addSheet" class="sheet-mask hidden">
+    <div class="sheet">
+      <div class="sheet-header">
+        <button id="addCancel" class="text-btn">取消</button>
+        <h2>记一笔</h2>
+        <button id="addSave" class="text-btn primary">保存</button>
+      </div>
+      <div class="seg-tabs">
+        <button id="segExpense" class="seg active" data-type="0">支出</button>
+        <button id="segIncome" class="seg" data-type="1">收入</button>
+      </div>
+      <div class="amount-row">
+        <span class="currency">¥</span>
+        <input id="amountInput" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off">
+      </div>
+      <div id="addCategories" class="icon-grid"></div>
+      <div class="form-row">
+        <label>备注</label>
+        <input id="noteInput" type="text" placeholder="点击填写备注" maxlength="50">
+      </div>
+      <div class="form-row">
+        <label>日期</label>
+        <input id="dateInput" type="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- 通用确认弹窗 -->
+  <div id="confirmDialog" class="sheet-mask hidden">
+    <div class="dialog">
+      <p id="confirmText"></p>
+      <div class="dialog-btns">
+        <button id="confirmCancel" class="dialog-btn">取消</button>
+        <button id="confirmOk" class="dialog-btn danger">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
