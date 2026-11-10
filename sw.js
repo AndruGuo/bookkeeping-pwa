@@ -1,5 +1,5 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v2';
+const CACHE_NAME = 'bookkeep-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,6 @@ const ASSETS = [
   './css/style.css',
   './js/util.js',
   './js/db.js',
-  './js/backup.js',
   './js/cloud.js',
   './js/app.js',
   './js/sw-register.js',
@@ -33,8 +32,8 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  // 所有跨域请求（含 API、GitHub API）一律 network only，不经过 SW 缓存
-  if (url.origin !== location.origin) return;
+  // API 请求（跨域或同域 /api/*）一律 network only，不经过 SW 缓存
+  if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   // 导航请求：网络优先，失败回退缓存
   if (e.request.mode === 'navigate') {
     e.respondWith(

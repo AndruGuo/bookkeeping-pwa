@@ -4,11 +4,20 @@
 //  - 写操作：先发云端，成功后写本地；失败则只写本地并记入 pending，待下次 sync 重放
 //  - 冲突：以本地为准（重放 push），随后拉全量覆盖本地
 import * as db from './db.js';
-import { loadSettings, getPassword } from './backup.js';
 
 const PENDING_KEY = 'bk_pending';
 const LAST_SYNC_KEY = 'bk_last_sync';
+const SETTINGS_KEY = 'bk_backup_settings'; // 与旧设置共用一个 key（保留 API 地址设置）
+const TOKEN_KEY = 'bk_token';
+const USERNAME_KEY = 'bk_username';
 export const DEFAULT_API = 'https://api.andru.de5.net';
+
+// ---- 设置（仅 API 地址）----
+export function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
 function emptyPending() {
   return { txAdds: [], txDeletes: [], catAdds: [], catDeletes: [], catIdMap: {} };
@@ -25,26 +34,87 @@ export function lastSyncInfo() {
 }
 function setLastSync(info) { localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(info)); }
 
-export function isConfigured() {
-  const s = loadSettings();
-  return !!(s.password || s.passwordSealed);
+// ---- 用户会话 ----
+export function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+export function getUsername() { return localStorage.getItem(USERNAME_KEY) || ''; }
+export function isAuthed() { return !!getToken(); }
+function setSession(token, username) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USERNAME_KEY, username || '');
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USERNAME_KEY);
+  }
 }
 
-// ---- API 请求（X-Auth 鉴权）----
+// ---- 认证接口 ----
+export async function register(username, password, invite) {
+  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+  const res = await fetch(base + '/api/register', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, invite })
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || `注册失败 (${res.status})`);
+  setSession(j.token, j.username);
+  return j;
+}
+
+export async function login(username, password) {
+  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+  const res = await fetch(base + '/api/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || `登录失败 (${res.status})`);
+  setSession(j.token, j.username);
+  return j;
+}
+
+export async function logout() {
+  const token = getToken();
+  if (token) {
+    try {
+      const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+      await fetch(base + '/api/logout', { method: 'POST', headers: { 'X-Auth': token } });
+    } catch { /* 忽略网络错误，本地照常登出 */ }
+  }
+  setSession(null);
+}
+
+// ---- API 请求（X-Auth: session token）----
 async function api(path, opts = {}) {
-  const s = loadSettings();
-  const base = (s.apiBase || DEFAULT_API).replace(/\/+$/, '');
-  const pwd = await getPassword(s);
-  if (!pwd) throw new Error('NOAUTH');
-  const headers = { 'X-Auth': pwd };
+  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+  const token = getToken();
+  if (!token) throw new Error('NOAUTH');
+  const headers = { 'X-Auth': token };
   if (opts.body) headers['Content-Type'] = 'application/json';
   const res = await fetch(base + path, {
     method: opts.method || 'GET',
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
+  if (res.status === 401) { setSession(null); throw new Error('登录已过期，请重新登录'); }
   if (!res.ok) throw new Error(`云端请求失败 (${res.status})`);
   return res.json();
+}
+
+// 导出数据（返回 Blob，触发下载）
+export async function exportData() {
+  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+  const res = await fetch(base + '/api/export', { headers: { 'X-Auth': getToken() } });
+  if (!res.ok) throw new Error(`导出失败 (${res.status})`);
+  return res.blob();
+}
+
+export async function wipeData() {
+  return api('/api/wipe', { method: 'POST', body: {} });
+}
+
+export function isConfigured() {
+  return isAuthed();
 }
 
 // ---- 字段映射：本地 camelCase ↔ 云端 snake_case ----

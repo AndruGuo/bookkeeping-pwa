@@ -5,10 +5,6 @@ import {
   toast, confirmDialog, esc, CHART_COLORS
 } from './util.js';
 import * as db from './db.js';
-import {
-  loadSettings, saveSettings, backupToGitHub, restoreFromGitHub,
-  getToken, setToken, setPassword, maskToken
-} from './backup.js';
 import * as cloud from './cloud.js';
 import { registerSW } from './sw-register.js';
 
@@ -313,39 +309,31 @@ function renderCategories() {
 
 // ---------- 设置页 ----------
 function renderSettings() {
-  const s = loadSettings();
   const syncInfo = cloud.lastSyncInfo();
-  const syncStatus = !cloud.isConfigured()
-    ? '<span style="color:var(--expense)">未配置：填入访问密码后开始云端同步</span>'
-    : (syncInfo ? (syncInfo.ok
-      ? `上次同步成功：${new Date(syncInfo.at).toLocaleString('zh-CN')}（${syncInfo.txs} 笔账单）`
-      : `<span style="color:var(--expense)">上次同步失败：${esc(syncInfo.msg || '网络不可用')}（离线模式，改动已保存本地）</span>`)
-      : '尚未同步');
+  const syncStatus = (syncInfo ? (syncInfo.ok
+    ? `上次同步成功：${new Date(syncInfo.at).toLocaleString('zh-CN')}（${syncInfo.txs} 笔账单）`
+    : `<span style="color:var(--expense)">上次同步失败：${esc(syncInfo.msg || '网络不可用')}（离线模式，改动已保存本地）</span>`)
+    : '尚未同步');
   return `<div class="page">
+    <div class="section-title">账号</div>
+    <div class="card" style="padding:0">
+      <div class="cat-row"><span class="cat-info"><span class="icon">👤</span><span class="name">${esc(cloud.getUsername() || '已登录')}</span></span></div>
+    </div>
+    <button class="btn-block" id="exportBtn" style="margin-top:12px">↓ 导出数据（JSON）</button>
+    <button class="btn-block" id="wipeBtn" style="color:var(--expense)">🗑 清空云端数据</button>
+    <button class="btn-block" id="logoutBtn">退出登录</button>
     <div class="section-title">云端同步</div>
     <div class="form-group">
-      <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(s.apiBase || '')}"></div>
-      <div class="form-row"><label>访问密码</label><input id="setAuthPwd" type="password" placeholder="${s.password || s.passwordSealed ? '已保存，输入新值可替换' : '填入访问密码后开始云端同步'}" value=""></div>
+      <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(cloud.loadSettings().apiBase || '')}"></div>
     </div>
     <div class="status-text">${syncStatus}</div>
     <div class="status-text">数据以云端为主存储，本机 IndexedDB 作为离线缓存；网络不可用时改动保存本地，恢复后自动同步。</div>
-    <div class="section-title">GitHub 加密备份</div>
-    <div class="form-group">
-      <div class="form-row"><label>Personal Access Token</label><input id="setToken" type="password" placeholder="${s.tokenSealed ? '已保存（' + esc(maskToken(s.tokenSealed)) + '），输入新值可替换' : 'ghp_ 或 github_pat_...'}" value=""></div>
-      <div class="form-row"><label>仓库</label><input id="setRepo" type="text" placeholder="owner/repo（私有仓库）" value="${esc(s.repo || '')}"></div>
-      <div class="form-row"><label>文件路径</label><input id="setPath" type="text" placeholder="backup/bookkeep.json" value="${esc(s.path || 'backup/bookkeep.json')}"></div>
-      <div class="form-row"><label>分支</label><input id="setBranch" type="text" placeholder="main" value="${esc(s.branch || 'main')}"></div>
-      <div class="form-row"><label>加密密码</label><input id="setPassword" type="password" placeholder="AES-256 备份密码"></div>
-    </div>
-    <div class="status-text">数据在本地使用 AES-GCM（PBKDF2 派生密钥）加密后上传到 GitHub 私有仓库；Token 与密码仅保存在本机 localStorage。Token 需要该仓库的 Contents 读写权限。</div>
-    <button class="btn-block" id="backupBtn">↑ 备份到 GitHub</button>
-    <button class="btn-block" id="restoreBtn">↓ 从 GitHub 恢复</button>
     <div class="section-title">预算</div>
     <div class="form-group">
       <div class="form-row"><label>月度预算（元）</label><input id="setBudget" type="number" inputmode="decimal" placeholder="不设置" value="${monthlyBudget() || ''}"></div>
     </div>
     <div class="section-title">关于</div>
-    <div class="status-text">记账本 PWA · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在浏览器 IndexedDB 中，建议定期备份。</div>
+    <div class="status-text">记账本 PWA · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在云端，可随时导出备份。</div>
   </div>`;
 }
 
@@ -395,68 +383,51 @@ function bindPageEvents() {
   });
 
   // 设置页
-  const backupBtn = document.getElementById('backupBtn');
-  if (backupBtn) {
-    const inputs = ['setToken', 'setRepo', 'setPath', 'setBranch', 'setPassword', 'setBudget', 'setApiBase', 'setAuthPwd'];
-    inputs.forEach((id) => {
-      const el = document.getElementById(id);
-      el.addEventListener('change', async () => {
-        let s = loadSettings();
-        // token/密码仅在输入了新值时更新（输入框不回显旧值，留空即保持不变）
-        const newToken = document.getElementById('setToken').value.trim();
-        if (newToken) s = await setToken(s, newToken);
-        const newPwd = document.getElementById('setPassword').value;
-        if (newPwd) s = await setPassword(s, newPwd);
-        s.repo = document.getElementById('setRepo').value.trim();
-        s.path = document.getElementById('setPath').value.trim() || 'backup/bookkeep.json';
-        s.branch = document.getElementById('setBranch').value.trim() || 'main';
-        const apiBaseEl = document.getElementById('setApiBase');
-        if (apiBaseEl) s.apiBase = apiBaseEl.value.trim();
-        const authPwdEl = document.getElementById('setAuthPwd');
-        const syncChanged = apiBaseEl && document.activeElement === apiBaseEl || authPwdEl && document.activeElement === authPwdEl;
-        if (authPwdEl && authPwdEl.value) s = await setPassword(s, authPwdEl.value);
-        saveSettings(s);
-        localStorage.setItem('bk_monthly_budget', document.getElementById('setBudget').value || '0');
-        toast('设置已保存（敏感信息已加密存储）');
-        if (syncChanged) {
-          try {
-            const r = await cloud.sync();
-            if (r.status === 'ok') { toast('✅ 云端同步成功'); await reload(); }
-            else if (r.status === 'noauth') toast('请填写访问密码以开始云端同步', 4000);
-            else if (r.status === 'offline') toast('当前离线，改动已保存本地', 4000);
-            if (state.tab === 'settings') render();
-          } catch (e) { /* 同步失败已在 sync 内记录 */ }
-        }
-      });
-    });
-    backupBtn.addEventListener('click', async () => {
-      const s = loadSettings();
-      const token = await getToken(s);
-      if (!token || !s.repo) return toast('请先填写 Token 和仓库');
-      if (!s.password) return toast('请设置加密密码');
-      backupBtn.disabled = true;
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+      exportBtn.disabled = true;
       try {
-        const msg = await backupToGitHub({ ...s, token });
-        toast('✅ ' + msg);
+        const blob = await cloud.exportData();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `bookkeep-${cloud.getUsername() || 'export'}-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        toast('✅ 已导出');
       } catch (e) {
-        toast('备份失败：' + e.message, 4000);
-      } finally {
-        backupBtn.disabled = false;
-      }
+        toast('导出失败：' + e.message, 4000);
+      } finally { exportBtn.disabled = false; }
     });
-    document.getElementById('restoreBtn').addEventListener('click', async () => {
-      const s = loadSettings();
-      const token = await getToken(s);
-      if (!token || !s.repo) return toast('请先填写 Token 和仓库');
-      if (!s.password) return toast('请输入加密密码');
-      if (!(await confirmDialog('恢复将覆盖本地全部数据，确定继续？'))) return;
+    document.getElementById('wipeBtn').addEventListener('click', async () => {
+      if (!(await confirmDialog('将清空你账号下的全部云端账单与分类，且不可恢复，确定继续？'))) return;
+      if (!(await confirmDialog('再次确认：真的要清空全部数据吗？'))) return;
       try {
-        const msg = await restoreFromGitHub({ ...s, token });
-        toast('✅ ' + msg);
+        await cloud.wipeData();
+        await db.replaceAll([], []);
+        localStorage.removeItem('bk_pending');
+        toast('✅ 已清空');
         await reload();
       } catch (e) {
-        toast('恢复失败：' + e.message, 4000);
+        toast('清空失败：' + e.message, 4000);
       }
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (!(await confirmDialog('退出后将停止云同步，本地缓存数据仍保留，确定退出？'))) return;
+      await cloud.logout();
+      location.reload();
+    });
+    const apiBaseEl = document.getElementById('setApiBase');
+    apiBaseEl.addEventListener('change', async () => {
+      const s = cloud.loadSettings();
+      s.apiBase = apiBaseEl.value.trim();
+      localStorage.setItem('bk_backup_settings', JSON.stringify(s));
+      toast('API 地址已保存');
+    });
+    const setBudget = document.getElementById('setBudget');
+    setBudget.addEventListener('change', () => {
+      localStorage.setItem('bk_monthly_budget', setBudget.value || '0');
+      toast('预算已保存');
     });
   }
 }
@@ -612,8 +583,59 @@ async function saveAdd() {
   toast('已记账');
 }
 
+// ---------- 登录 / 注册页 ----------
+function showAuthScreen(mode = 'login') {
+  const container = document.getElementById('pageContainer');
+  document.getElementById('navTitle').textContent = '记账本';
+  document.getElementById('monthPrev').style.visibility = 'hidden';
+  document.getElementById('monthNext').style.visibility = 'hidden';
+  container.innerHTML = `
+    <div class="page" style="max-width:420px;margin:0 auto;padding-top:32px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:56px">💰</div>
+        <div style="font-size:20px;font-weight:700;margin-top:8px">记账本</div>
+      </div>
+      <div class="seg-tabs" style="margin-bottom:16px">
+        <button class="seg ${mode === 'login' ? 'active' : ''}" data-amode="login">登录</button>
+        <button class="seg ${mode === 'register' ? 'active' : ''}" data-amode="register">注册</button>
+      </div>
+      <div class="form-group">
+        <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>用户名</label><input id="authUser" type="text" placeholder="3-20 位字母、数字或下划线" maxlength="20" autocomplete="username"></div>
+        <div class="form-row plain" style="${mode === 'register' ? '' : 'border-radius:0 0 12px 12px;border-bottom:none'}"><label>密码</label><input id="authPwd" type="password" placeholder="${mode === 'register' ? '至少 8 位' : '密码'}" autocomplete="current-password"></div>
+        ${mode === 'register' ? '<div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>邀请码</label><input id="authInvite" type="text" placeholder="请输入邀请码"></div>' : ''}
+      </div>
+      <button class="btn-block primary" id="authSubmit" style="margin-top:16px">${mode === 'login' ? '登录' : '注册并登录'}</button>
+      <div class="status-text" id="authMsg" style="text-align:center"></div>
+    </div>`;
+  container.querySelectorAll('[data-amode]').forEach((b) => {
+    b.addEventListener('click', () => showAuthScreen(b.dataset.amode));
+  });
+  container.querySelector('#authSubmit').addEventListener('click', async () => {
+    const btn = container.querySelector('#authSubmit');
+    const msg = container.querySelector('#authMsg');
+    const user = container.querySelector('#authUser').value.trim();
+    const pwd = container.querySelector('#authPwd').value;
+    const invite = (container.querySelector('#authInvite') || {}).value || '';
+    msg.textContent = '';
+    if (!user || !pwd) { msg.textContent = '请填写用户名和密码'; return; }
+    btn.disabled = true;
+    try {
+      if (mode === 'login') await cloud.login(user, pwd);
+      else await cloud.register(user, pwd, invite);
+      toast(`欢迎，${cloud.getUsername()}`);
+      await initDBAndRender();
+    } catch (e) {
+      msg.textContent = e.message;
+    } finally { btn.disabled = false; }
+  });
+  container.querySelector('#authPwd').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') container.querySelector('#authSubmit').click();
+  });
+}
+
 // ---------- 初始化 ----------
 function switchTab(tab) {
+  if (!cloud.isAuthed()) { showAuthScreen(); return; }
   state.tab = tab;
   document.querySelectorAll('.tab-item').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === tab);
@@ -653,7 +675,10 @@ function init() {
   }, { passive: true });
 
   // 记一笔
-  document.getElementById('addBtn').addEventListener('click', openAddSheet);
+  document.getElementById('addBtn').addEventListener('click', () => {
+    if (!cloud.isAuthed()) { showAuthScreen(); return; }
+    openAddSheet();
+  });
   document.getElementById('addCancel').addEventListener('click', () => {
     document.getElementById('addSheet').classList.add('hidden');
   });
@@ -666,6 +691,11 @@ function init() {
 }
 
 async function initDBAndRender() {
+  // 登录门：无 token 时先显示登录/注册页
+  if (!cloud.isAuthed()) {
+    showAuthScreen();
+    return;
+  }
   await db.initDB();
   await reload();
   // 云端为主：启动时全量同步，失败则离线模式（沿用本地数据）
@@ -676,7 +706,10 @@ async function initDBAndRender() {
     } else if (r.status === 'offline') {
       toast('当前离线，使用本地数据', 4000);
     }
-  } catch (e) { /* 保持本地数据 */ }
+  } catch (e) {
+    if (/重新登录/.test(e.message || '')) { showAuthScreen(); return; }
+    /* 保持本地数据 */
+  }
   // 网络恢复时自动重试同步
   window.addEventListener('online', async () => {
     try {
