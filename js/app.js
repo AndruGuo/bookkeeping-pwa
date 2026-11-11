@@ -719,8 +719,9 @@ async function checkRecurring() {
 function renderSettings() {
   return `<div class="page">
     <div class="section-title">账号</div>
-    <div class="card" style="padding:0">
-      <div class="cat-row"><span class="cat-info"><img class="avatar" src="assets/avatar.png?v=3" alt="头像"><span class="name">${esc(cloud.getUsername() || '已登录')}</span></span></div>
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;padding:20px 12px 14px">
+      <img class="avatar avatar-lg" src="assets/av-a.png" alt="头像" style="margin-bottom:10px">
+      <div class="name" style="font-size:17px;font-weight:600">${esc(cloud.getUsername() || '已登录')}</div>
     </div>
     <button class="btn-block" id="exportBtn" style="margin-top:12px">↓ 导出数据（JSON）</button>
     <button class="btn-block" id="wipeBtn" style="color:var(--expense)">🗑 清空云端数据</button>
@@ -1039,7 +1040,7 @@ function showAuthScreen(mode = 'login') {
   container.innerHTML = `
     <div class="page" style="max-width:420px;margin:0 auto;padding-top:32px">
       <div style="text-align:center;margin-bottom:24px">
-        <img class="avatar avatar-lg" src="assets/avatar.png?v=3" alt="记账本头像">
+        <img class="avatar avatar-lg" src="assets/av-a.png" alt="记账本头像">
         <div style="font-size:20px;font-weight:700">记账本</div>
       </div>
       <div class="seg-tabs" style="margin-bottom:16px">
