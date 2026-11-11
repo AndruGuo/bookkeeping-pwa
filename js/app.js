@@ -87,35 +87,54 @@ function monthlyBudget() {
 // ---------- 顶部标题 ----------
 function updateNav() {
   const titleEl = document.getElementById('navTitle');
-  const showMonth = state.tab === 'home' || state.tab === 'stats';
-  titleEl.textContent = showMonth ? monthTitle(state.month) : { home: '明细', stats: '统计', categories: '分类管理', settings: '设置' }[state.tab];
+  const showMonth = state.tab === 'stats';
+  const titles = { home: '记账本', stats: '统计', categories: '分类管理', settings: '我的' };
+  titleEl.textContent = state.tab === 'stats' ? monthTitle(state.month) : titles[state.tab];
   document.getElementById('monthPrev').style.visibility = showMonth ? 'visible' : 'hidden';
   document.getElementById('monthNext').style.visibility = showMonth ? 'visible' : 'hidden';
+  const av = document.getElementById('navAvatarWrap');
+  if (av) av.style.visibility = (state.tab === 'home' || state.tab === 'settings') ? 'visible' : 'hidden';
 }
 
-// ---------- 汇总卡 ----------
-function summaryCardHTML() {
+// ---------- 黄色头部（月份切换 + 收入/支出汇总） ----------
+function monthSwitchHTML(home) {
+  const p = home ? 'Home' : '';
+  return `
+    <div class="month-switch">
+      <button class="nav-btn" id="monthPrev${p}" aria-label="上一月">‹</button>
+      <span>${monthTitle(state.month)}</span>
+      <button class="nav-btn" id="monthNext${p}" aria-label="下一月">›</button>
+    </div>`;
+}
+
+function summaryInlineHTML() {
+  const s = monthSummary();
+  const big = (v) => {
+    const yuan = Math.floor(Math.abs(v) / 100);
+    const fen = (Math.abs(v) % 100).toString().padStart(2, '0');
+    return `${fmtCents(v).slice(0, fmtCents(v).length - 3)}<small>.${fen}</small>`;
+  };
+  return `
+    <div class="head-summary">
+      <div><div class="hl">收入</div><div class="hv">${big(s.income)}</div></div>
+      <div><div class="hl">支出</div><div class="hv">${big(s.expense)}</div></div>
+      <div><div class="hl">结余</div><div class="hv">${big(s.balance)}</div></div>
+    </div>`;
+}
+
+function headSummaryCardHTML(withBudget, withSwitch = true) {
   const s = monthSummary();
   const budget = monthlyBudget();
   let budgetHTML = '';
-  if (budget > 0) {
+  if (withBudget && budget > 0) {
     const pct = Math.min(100, Math.round((s.expense / (budget * 100)) * 100));
     budgetHTML = `
-      <div class="budget-bar ${pct >= 100 ? 'budget-over' : ''}" style="background:rgba(255,255,255,0.3)">
-        <div style="width:${pct}%"></div>
+      <div class="budget-bar" style="background:rgba(255,255,255,0.45);border-radius:3px;height:6px;margin-top:12px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:#222;border-radius:3px"></div>
       </div>
-      <div style="font-size:12px;opacity:.9;margin-top:4px">月预算 ¥${budget.toLocaleString('en-US')}，已用 ${pct}%</div>`;
+      <div style="font-size:12px;color:#444;margin-top:4px">月预算 ¥${budget.toLocaleString('en-US')}，已用 ${pct}%</div>`;
   }
-  return `
-    <div class="summary-card">
-      <div class="label">本月结余</div>
-      <div class="big">¥${fmtCents(s.balance)}</div>
-      <div class="summary-row">
-        <div><div class="label">本月支出</div><div class="num">¥${fmtCents(s.expense)}</div></div>
-        <div><div class="label">本月收入</div><div class="num">¥${fmtCents(s.income)}</div></div>
-      </div>
-      ${budgetHTML}
-    </div>`;
+  return `<div class="home-head">${withSwitch ? monthSwitchHTML(false) : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
 }
 
 // ---------- 空态 ----------
@@ -124,6 +143,20 @@ function emptyArt(emoji, text, sub) {
 }
 function emptyArtHome() {
   return emptyArt('🧾', '本月暂无账单', '点击下方 ＋ 记一笔');
+}
+
+// ---------- 快捷入口（白色圆角卡 + 黄色描线图标） ----------
+function quickCardHTML() {
+  const W = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+  const ic = (body) => `<svg viewBox="0 0 24 24" ${W}>${body}</svg>`;
+  return `
+    <div class="quick-card">
+      <button id="quickSearch">${ic('<circle class="ic-fill" cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>')}<span>搜索</span></button>
+      <button id="quickRecur">${ic('<rect class="ic-fill" x="4" y="5" width="16" height="15" rx="3"/><path d="M4 9.5h16M8.5 3.5v3m7-3v3"/><path d="M9 15h6"/>')}<span>周期</span></button>
+      <button id="quickExport">${ic('<path d="M12 4v10m0 0l-3.5-3.5M12 14l3.5-3.5"/><path class="ic-fill" d="M4.5 15.5v3A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-3"/>')}<span>导出</span></button>
+      <button id="quickChart">${ic('<path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 14l3.5-4 3 2.5 4-5"/><circle class="ic-fill" cx="18" cy="7.5" r="1.6" stroke-width="2"/>')}<span>图表</span></button>
+      <button id="quickMore">${ic('<circle class="ic-fill" cx="12" cy="12" r="8.5"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="3"/>')}<span>设置</span></button>
+    </div>`;
 }
 
 // ---------- 首页（含搜索/筛选） ----------
@@ -165,7 +198,7 @@ function filterBarHTML() {
 }
 
 function renderHome() {
-  return `<div class="page">${summaryCardHTML()}${filterBarHTML()}<div id="txList">${txListHTML()}</div></div>`;
+  return `<div class="page">${headSummaryCardHTML(true)}${quickCardHTML()}${filterBarHTML()}<div id="txList">${txListHTML()}</div></div>`;
 }
 
 function txListHTML() {
@@ -195,7 +228,7 @@ function txListHTML() {
               <span class="name">${esc(c ? c.name : '未知分类')}</span>
               ${t.note ? `<span class="note">${esc(t.note)}</span>` : ''}
             </span>
-            <span class="tx-amount ${color}">${t.type === EXPENSE ? '-' : '+'}${fmtCents(t.amountInCents)}</span>
+            <span class="tx-amount ${color}">${t.type === EXPENSE ? '-' : ''}${fmtCents(t.amountInCents)}</span>
           </button>`;
       }).join('');
       listHTML += `
@@ -233,15 +266,12 @@ function categoryStats(type) {
   };
 }
 
-// ---------- Chart.js 图表 ----------
-// 主题适配：读取当前深浅色
-function isDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+// ---------- Chart.js 图表（黄黑主题） ----------
 function chartTheme() {
-  const dark = isDark();
   return {
-    text: dark ? '#98989F' : '#8E8E93',
-    grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-    tooltipBg: dark ? 'rgba(44,44,46,0.95)' : 'rgba(28,28,30,0.92)'
+    text: '#999999',
+    grid: 'rgba(0,0,0,0.05)',
+    tooltipBg: 'rgba(34,34,34,0.92)'
   };
 }
 const chartInstances = [];
@@ -285,9 +315,9 @@ function mountTrendChart() {
     data: {
       labels,
       datasets: [
-        { label: '支出', data: exp, borderColor: '#F24D40', backgroundColor: 'rgba(242,77,64,0.12)',
+        { label: '支出', data: exp, borderColor: '#222222', backgroundColor: 'rgba(255,216,53,0.25)',
           fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 4 },
-        { label: '收入', data: inc, borderColor: '#33BF73', backgroundColor: 'rgba(51,191,115,0.10)',
+        { label: '收入', data: inc, borderColor: '#FFC400', backgroundColor: 'rgba(255,216,53,0.15)',
           fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 4 }
       ]
     },
@@ -353,8 +383,8 @@ function mountMonthlyBarChart() {
     data: {
       labels,
       datasets: [
-        { label: '支出', data: expData, backgroundColor: 'rgba(242,77,64,0.85)', borderRadius: 6, maxBarThickness: 22 },
-        { label: '收入', data: incData, backgroundColor: 'rgba(51,191,115,0.85)', borderRadius: 6, maxBarThickness: 22 }
+        { label: '支出', data: expData, backgroundColor: '#222222', borderRadius: 6, maxBarThickness: 22 },
+        { label: '收入', data: incData, backgroundColor: '#FFD835', borderRadius: 6, maxBarThickness: 22 }
       ]
     },
     options: {
@@ -386,7 +416,7 @@ function mountDoughnutChart() {
         data: items.map((it) => it.amount / 100),
         backgroundColor: CHART_COLORS.slice(0, items.length),
         borderWidth: 2,
-        borderColor: isDark() ? '#1C1C1E' : '#FFFFFF',
+        borderColor: '#FFFFFF',
         hoverOffset: 6
       }]
     },
@@ -454,7 +484,7 @@ function renderStats() {
     <div class="bar-col" style="position:relative">
       <div style="display:flex;align-items:flex-end;gap:1px;height:100%;width:100%;justify-content:center">
         <div class="bar-rect" style="height:${(ev / maxY * 100).toFixed(1)}%"></div>
-        <div class="bar-rect income-bar-static" style="height:${(yearlyInc[i] / maxY * 100).toFixed(1)}%;background:rgba(51,191,115,0.8);width:40%;border-radius:3px 3px 0 0"></div>
+        <div class="bar-rect income-bar-static" style="height:${(yearlyInc[i] / maxY * 100).toFixed(1)}%;background:#222222;width:40%;border-radius:3px 3px 0 0"></div>
       </div>
       ${(i + 1) % 2 === 1 ? `<div class="bar-label">${i + 1}月</div>` : '<div class="bar-label">&nbsp;</div>'}
     </div>`).join('');
@@ -494,7 +524,7 @@ function renderStats() {
   const sixEmpty = sixMonths.every((m) => m.expense === 0 && m.income === 0);
 
   return `<div class="page">
-    ${summaryCardHTML()}
+    ${headSummaryCardHTML(false, false)}
     <div class="card">
       <h3>近 30 天收支趋势</h3>
       ${trendEmpty ? emptyArt('📉', '暂无收支数据', '记一笔后即可看到趋势曲线') : '<div class="chart-box"><canvas id="trendChart"></canvas></div>'}
@@ -550,7 +580,7 @@ function renderStats() {
       ${yearlyExp.every((v) => v === 0) && yearlyInc.every((v) => v === 0)
         ? emptyArt('🗓️', '本年暂无数据')
         : `<div class="bar-chart" style="height:160px">${yearBars}</div>
-           <div class="pie-legend"><span><span class="dot" style="background:rgba(242,77,64,0.8)"></span>支出</span><span><span class="dot" style="background:rgba(51,191,115,0.8)"></span>收入</span></div>`}
+           <div class="pie-legend"><span><span class="dot" style="background:#FFD835"></span>支出</span><span><span class="dot" style="background:#222222"></span>收入</span></div>`}
     </div>
   </div>`;
 }
@@ -559,21 +589,20 @@ function renderStats() {
 function renderCategories() {
   const list = state.categories;
   const rows = list.map((c) => {
-    const typeIcon = c.type === EXPENSE ? 'expense' : 'income';
     return `
-      <div class="tx-item" style="background:var(--card)">
-        <span class="tx-icon ${typeIcon}">${iconEmoji(c.icon)}</span>
+      <div class="tx-item">
+        <span class="tx-icon">${iconEmoji(c.icon)}</span>
         <span class="tx-info">
           <span class="name">${esc(c.name)}</span>
           <span class="note">${c.isSystem ? '内置分类' : (c.type === EXPENSE ? '支出' : '收入')}</span>
         </span>
         ${c.isSystem
           ? '<span class="muted" style="font-size:12px">不可删除</span>'
-          : `<button class="text-btn" style="color:var(--expense)" data-delcat="${c.id}">删除</button>`}
+          : `<button class="text-btn" data-delcat="${c.id}">删除</button>`}
       </div>`;
   }).join('');
   return `<div class="page">
-    <button class="btn-block" id="addCatBtn">＋ 新建分类</button>
+    <button class="btn-block primary" id="addCatBtn">＋ 新建分类</button>
     <div class="card" style="padding:0">${rows || '<div class="empty">暂无分类</div>'}</div>
   </div>`;
 }
@@ -608,7 +637,7 @@ function recurringRowsHTML() {
         <span class="name">${esc(r.name)}</span>
         <span class="note">${recDesc(r)}${r.lastRun ? ` · 上次 ${r.lastRun}` : ''}</span>
       </span>
-      <button class="text-btn" style="color:var(--expense)" data-delrecur="${r.id}">删除</button>
+      <button class="text-btn" data-delrecur="${r.id}">删除</button>
     </div>`).join('');
 }
 
@@ -715,30 +744,52 @@ async function checkRecurring() {
   }
 }
 
-// ---------- 设置页 ----------
+// ---------- 设置页（我的） ----------
+function bookkeepingStats() {
+  const days = new Set(state.transactions.map((t) => dateKey(new Date(t.date))));
+  // 连续记账天数：从今天（或昨天）往前连续有账单的天数
+  let streak = 0;
+  let cursor = new Date();
+  if (!days.has(dateKey(cursor))) cursor = new Date(Date.now() - 86400000);
+  while (days.has(dateKey(cursor))) {
+    streak++;
+    cursor = new Date(cursor.getTime() - 86400000);
+  }
+  return { totalDays: days.size, totalTx: state.transactions.length, streak };
+}
+
 function renderSettings() {
+  const st = bookkeepingStats();
+  const ic = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
   return `<div class="page">
-    <div class="section-title">账号</div>
-    <div class="card" style="display:flex;flex-direction:column;align-items:center;padding:20px 12px 14px">
-      <img class="avatar avatar-lg" src="assets/av-a.png" alt="头像" style="margin-bottom:10px">
-      <div class="name" style="font-size:17px;font-weight:600">${esc(cloud.getUsername() || '已登录')}</div>
+    <div class="profile-head">
+      <div class="profile-row">
+        <img class="avatar" src="assets/avatar.png" alt="头像">
+        <div class="profile-name">${esc(cloud.getUsername() || '已登录')}</div>
+      </div>
+      <div class="profile-stats">
+        <div><div class="pv">${st.streak}</div><div class="pl">连续记账天数</div></div>
+        <div><div class="pv">${st.totalDays}</div><div class="pl">记账天数</div></div>
+        <div><div class="pv">${st.totalTx}</div><div class="pl">总笔数</div></div>
+      </div>
     </div>
-    <button class="btn-block" id="exportBtn" style="margin-top:12px">↓ 导出数据（JSON）</button>
-    <button class="btn-block" id="wipeBtn" style="color:var(--expense)">🗑 清空云端数据</button>
-    <button class="btn-block" id="logoutBtn">退出登录</button>
+    <div class="list-card">
+      <button class="list-row" id="exportBtn"><span class="row-icon">${ic('<path d="M12 4v10m0 0l-3.5-3.5M12 14l3.5-3.5"/><path d="M4.5 15.5v3A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-3"/>')}</span><span class="row-label">导出数据（JSON）</span><span class="arrow">›</span></button>
+      <button class="list-row" id="addRecurEntry"><span class="row-icon">${ic('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 9.5h16M8.5 3.5v3m7-3v3"/><path d="M9 15h6"/>')}</span><span class="row-label">周期记账</span><span class="row-extra">${loadRecurring().length || ''}</span><span class="arrow">›</span></button>
+      <button class="list-row" id="wipeBtn"><span class="row-icon">${ic('<path d="M5 7h14"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M7 7l1 13h8l1-13"/>')}</span><span class="row-label">清空云端数据</span><span class="arrow">›</span></button>
+    </div>
     <div class="section-title">云端同步</div>
     <div class="form-group">
       <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(cloud.loadSettings().apiBase || '')}"></div>
-    </div>
-    <div class="status-text">数据实时写入云端；本地保留缓存，断网时可正常记账查看，恢复网络后自动补传同步。</div>
-    <div class="section-title">周期记账</div>
-    <div class="card" style="padding:0">${recurringRowsHTML()}</div>
-    <button class="btn-block" id="addRecurBtn">＋ 添加周期模板</button>
-    <div class="section-title">预算</div>
-    <div class="form-group">
       <div class="form-row"><label>月度预算（元）</label><input id="setBudget" type="number" inputmode="decimal" placeholder="不设置" value="${monthlyBudget() || ''}"></div>
     </div>
-    <div class="section-title">关于</div>
+    <div class="status-text">数据实时写入云端；本地保留缓存，断网时可正常记账查看，恢复网络后自动补传同步。</div>
+    <div class="section-title">周期记账模板</div>
+    <div class="card" style="padding:0">${recurringRowsHTML()}</div>
+    <button class="btn-block primary" id="addRecurBtn">＋ 添加周期模板</button>
+    <div class="list-card">
+      <button class="list-row" id="logoutBtn"><span class="row-icon">${ic('<path d="M15 12H4m0 0l3.5-3.5M4 12l3.5 3.5"/><path d="M12 4h5.5A1.5 1.5 0 0 1 19 5.5v13a1.5 1.5 0 0 1-1.5 1.5H12"/>')}</span><span class="row-label">退出登录</span><span class="arrow">›</span></button>
+    </div>
     <div class="status-text">记账本 PWA · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在云端，可随时导出备份。</div>
   </div>`;
 }
@@ -755,6 +806,25 @@ function render() {
   container.scrollTop = 0;
   bindPageEvents();
   mountCharts();
+}
+
+// ---------- 导出数据（首页快捷入口与设置页共用） ----------
+async function doExport() {
+  let exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.disabled = true;
+  try {
+    const blob = await cloud.exportData();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `bookkeep-${cloud.getUsername() || 'export'}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('✅ 已导出');
+  } catch (e) {
+    toast('导出失败：' + e.message, 4000);
+  } finally {
+    if (exportBtn) exportBtn.disabled = false;
+  }
 }
 
 // ---------- 页面事件 ----------
@@ -827,22 +897,34 @@ function bindPageEvents() {
     });
   }
 
+  // 快捷入口（首页）
+  const quickSearch = document.getElementById('quickSearch');
+  if (quickSearch) {
+    quickSearch.addEventListener('click', () => {
+      const si = document.getElementById('searchInput');
+      if (si) si.focus();
+    });
+    document.getElementById('quickRecur').addEventListener('click', () => switchTab('settings'));
+    document.getElementById('quickExport').addEventListener('click', doExport);
+    document.getElementById('quickChart').addEventListener('click', () => switchTab('stats'));
+    document.getElementById('quickMore').addEventListener('click', () => switchTab('settings'));
+    // 首页头部月份切换
+    document.getElementById('monthPrevHome').addEventListener('click', () => {
+      state.month = shiftMonth(state.month, -1); render();
+    });
+    document.getElementById('monthNextHome').addEventListener('click', () => {
+      state.month = shiftMonth(state.month, 1); render();
+    });
+  }
+
   // 设置页
   const exportBtn = document.getElementById('exportBtn');
   if (exportBtn) {
-    exportBtn.addEventListener('click', async () => {
-      exportBtn.disabled = true;
-      try {
-        const blob = await cloud.exportData();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `bookkeep-${cloud.getUsername() || 'export'}-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-        toast('✅ 已导出');
-      } catch (e) {
-        toast('导出失败：' + e.message, 4000);
-      } finally { exportBtn.disabled = false; }
+    exportBtn.addEventListener('click', doExport);
+    const recurEntry = document.getElementById('addRecurEntry');
+    if (recurEntry) recurEntry.addEventListener('click', () => {
+      const target = document.getElementById('addRecurBtn');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
     document.getElementById('wipeBtn').addEventListener('click', async () => {
       if (!(await confirmDialog('将清空你账号下的全部云端账单与分类，且不可恢复，确定继续？'))) return;
@@ -923,7 +1005,7 @@ async function showTxDetail(id) {
 async function showAddCategory() {
   const mask = document.createElement('div');
   mask.className = 'sheet-mask';
-  const icons = ['🍴', '☕', '🚗', '🛒', '👜', '🎁', '🎮', '🏠', '⚡', '💧', '❤️', '🩺', '📚', '🎓', '✈️', '🎬', '🎵', '🐾', '👕', '🏋️', '💊', '💳', '👛', '💼', '⭐', '✨', '🍀', '⚽', '🏷️'];
+  const icons = ['fork.knife', 'cup.and.saucer.fill', 'car.fill', 'bus.fill', 'cart.fill', 'bag.fill', 'gift.fill', 'gamecontroller.fill', 'house.fill', 'bolt.fill', 'drop.fill', 'phone.fill', 'heart.fill', 'cross.case.fill', 'book.fill', 'graduationcap.fill', 'airplane', 'film.fill', 'music.note', 'pawprint.fill', 'tshirt.fill', 'dumbbell.fill', 'creditcard.fill', 'banknote.fill', 'wallet.pass.fill', 'briefcase.fill', 'star.fill', 'sportscourt.fill', 'tag'];
   mask.innerHTML = `
     <div class="sheet">
       <div class="sheet-header">
@@ -936,14 +1018,14 @@ async function showAddCategory() {
         <button class="seg" data-ctype="1">收入</button>
       </div>
       <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>名称</label><input id="catName" type="text" placeholder="分类名称" maxlength="10"></div>
-      <div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>图标</label><span id="catIconPreview" style="font-size:20px">🏷️</span></div>
+      <div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>图标</label><span id="catIconPreview" style="width:28px;height:28px;display:inline-flex">${iconEmoji('tag')}</span></div>
       <div class="icon-grid" id="catIcons">${icons.map((ic, i) => `
-        <button class="icon-cell small ${i === icons.length - 1 ? 'selected' : ''}" data-icon="${ic}">${ic}</button>`).join('')}
+        <button class="icon-cell small ${i === icons.length - 1 ? 'selected' : ''}" data-icon="${ic}">${iconEmoji(ic)}</button>`).join('')}
       </div>
     </div>`;
   document.body.appendChild(mask);
   let type = EXPENSE;
-  let icon = '🏷️';
+  let icon = 'tag';
   mask.querySelectorAll('[data-ctype]').forEach((b) => b.addEventListener('click', () => {
     mask.querySelectorAll('[data-ctype]').forEach((x) => x.classList.remove('active'));
     b.classList.add('active');
@@ -953,7 +1035,7 @@ async function showAddCategory() {
     mask.querySelectorAll('[data-icon]').forEach((x) => x.classList.remove('selected'));
     b.classList.add('selected');
     icon = b.dataset.icon;
-    mask.querySelector('#catIconPreview').textContent = icon;
+    mask.querySelector('#catIconPreview').innerHTML = iconEmoji(icon);
   }));
   mask.querySelector('#catCancel').addEventListener('click', () => mask.remove());
   mask.addEventListener('click', (e) => { if (e.target === mask) mask.remove(); });
@@ -1038,22 +1120,25 @@ function showAuthScreen(mode = 'login') {
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
   container.innerHTML = `
-    <div class="page" style="max-width:420px;margin:0 auto;padding-top:32px">
-      <div style="text-align:center;margin-bottom:24px">
-        <img class="avatar avatar-lg" src="assets/av-a.png" alt="记账本头像">
-        <div style="font-size:20px;font-weight:700">记账本</div>
+    <div class="page" style="max-width:420px;margin:0 auto">
+      <div class="profile-head" style="text-align:center">
+        <img class="avatar avatar-lg" src="assets/avatar.png" alt="记账本头像" style="border-width:3px">
+        <div style="font-size:22px;font-weight:700;margin-top:4px">记账本</div>
+        <div style="font-size:13px;color:#666;margin-top:4px">简单清晰地记好每一笔</div>
       </div>
-      <div class="seg-tabs" style="margin-bottom:16px">
-        <button class="seg ${mode === 'login' ? 'active' : ''}" data-amode="login">登录</button>
-        <button class="seg ${mode === 'register' ? 'active' : ''}" data-amode="register">注册</button>
+      <div class="card" style="margin-top:16px">
+        <div class="seg-tabs" style="margin-bottom:16px">
+          <button class="seg ${mode === 'login' ? 'active' : ''}" data-amode="login">登录</button>
+          <button class="seg ${mode === 'register' ? 'active' : ''}" data-amode="register">注册</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>用户名</label><input id="authUser" type="text" placeholder="3-20 位字母、数字或下划线" maxlength="20" autocomplete="username"></div>
+          <div class="form-row plain" style="${mode === 'register' ? '' : 'border-radius:0 0 12px 12px;border-bottom:none'}"><label>密码</label><input id="authPwd" type="password" placeholder="${mode === 'register' ? '至少 8 位' : '密码'}" autocomplete="current-password"></div>
+          ${mode === 'register' ? '<div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>邀请码</label><input id="authInvite" type="text" placeholder="请输入邀请码"></div>' : ''}
+        </div>
+        <button class="btn-block primary" id="authSubmit" style="margin-top:16px">${mode === 'login' ? '登录' : '注册并登录'}</button>
+        <div class="status-text" id="authMsg" style="text-align:center"></div>
       </div>
-      <div class="form-group">
-        <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>用户名</label><input id="authUser" type="text" placeholder="3-20 位字母、数字或下划线" maxlength="20" autocomplete="username"></div>
-        <div class="form-row plain" style="${mode === 'register' ? '' : 'border-radius:0 0 12px 12px;border-bottom:none'}"><label>密码</label><input id="authPwd" type="password" placeholder="${mode === 'register' ? '至少 8 位' : '密码'}" autocomplete="current-password"></div>
-        ${mode === 'register' ? '<div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>邀请码</label><input id="authInvite" type="text" placeholder="请输入邀请码"></div>' : ''}
-      </div>
-      <button class="btn-block primary" id="authSubmit" style="margin-top:16px">${mode === 'login' ? '登录' : '注册并登录'}</button>
-      <div class="status-text" id="authMsg" style="text-align:center"></div>
     </div>`;
   container.querySelectorAll('[data-amode]').forEach((b) => {
     b.addEventListener('click', () => showAuthScreen(b.dataset.amode));
