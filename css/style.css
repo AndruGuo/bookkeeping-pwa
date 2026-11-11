@@ -5,7 +5,7 @@
   --expense: #F24D40;
   --income: #33BF73;
   --bg: #F2F2F7;
-  --bg-grad: linear-gradient(180deg, #FFE7D1 0%, #F2F2F7 220px);
+  --bg-grad: linear-gradient(180deg, #E4E8FF 0%, #E1F6F3 90px, #F2F2F7 240px);
   --card: rgba(255, 255, 255, 0.72);
   --card-solid: #FFFFFF;
   --text: #1C1C1E;
@@ -16,8 +16,12 @@
   --glass-blur: saturate(180%) blur(20px);
   --shadow-sm: 0 1px 2px rgba(16, 12, 8, 0.04), 0 2px 8px rgba(16, 12, 8, 0.06);
   --shadow-md: 0 4px 12px rgba(16, 12, 8, 0.08), 0 1px 3px rgba(16, 12, 8, 0.05);
-  --radius: 14px;
-  --radius-lg: 16px;
+  --radius: 20px;
+  --radius-lg: 24px;
+  --glass-stroke: rgba(255, 255, 255, 0.55);
+  --glass-sheen: linear-gradient(155deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0.16) 100%);
+  --glass-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 28px rgba(64,70,140,0.10), 0 2px 8px rgba(64,70,140,0.07);
+  --sheet-bg: rgba(248, 249, 255, 0.86);
   --nav-h: 44px;
   --tab-h: 56px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -27,16 +31,20 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0E0E10;
-    --bg-grad: linear-gradient(180deg, #2A1B0D 0%, #0E0E10 260px);
-    --card: rgba(40, 40, 44, 0.66);
-    --card-solid: #28282C;
-    --text: #F2F2F7;
-    --text2: #98989F;
+    --bg-grad: linear-gradient(180deg, #191933 0%, #10201F 110px, #0E0E10 280px);
+    --card: rgba(46, 46, 54, 0.74);
+    --card-solid: #2C2C34;
+    --text: #F5F5FA;
+    --text2: #A6A6B0;
     --sep: rgba(84, 84, 88, 0.45);
     --nav-bg: rgba(20, 20, 22, 0.72);
     --tab-bg: rgba(28, 28, 30, 0.78);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --glass-stroke: rgba(255, 255, 255, 0.12);
+    --glass-sheen: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.05) 100%);
+    --glass-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 30px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.40);
+    --sheet-bg: rgba(22, 22, 28, 0.88);
     color-scheme: dark;
   }
 }
@@ -53,7 +61,7 @@ input { font-family: inherit; color: var(--text); }
 .hidden { display: none !important; }
 .offline-banner {
   background: #B45309; color: #fff; text-align: center;
-  font-size: 13px; font-weight: 600; padding: 8px 12px;
+  font-size: 13px; font-weight: 600; padding: calc(8px + var(--safe-top)) 12px 8px;
   animation: fadeDown 0.25s ease;
 }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: translateY(0); } }
@@ -64,10 +72,20 @@ input { font-family: inherit; color: var(--text); }
   height: calc(var(--nav-h) + var(--safe-top));
   padding-top: var(--safe-top);
   display: flex; align-items: center;
-  background: var(--nav-bg);
+  /* 渐变从屏幕最顶端开始：状态栏区域透出主题渐变 + 毛玻璃 */
+  background:
+    linear-gradient(180deg, rgba(99,102,241,0.16) 0%, rgba(45,212,191,0.10) 55%, rgba(45,212,191,0.04) 100%),
+    var(--nav-bg);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   border-bottom: 0.5px solid var(--sep);
+}
+@media (prefers-color-scheme: dark) {
+  .nav-bar {
+    background:
+      linear-gradient(180deg, rgba(99,102,241,0.22) 0%, rgba(45,212,191,0.12) 55%, rgba(45,212,191,0.05) 100%),
+      var(--nav-bg);
+  }
 }
 .nav-bar h1 {
   flex: 1; text-align: center;
@@ -104,10 +122,7 @@ input { font-family: inherit; color: var(--text); }
   border-radius: var(--radius);
   padding: 16px; margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
-}
-@media (prefers-color-scheme: dark) {
-  .card { border-color: rgba(255, 255, 255, 0.08); }
+  border: 1px solid var(--glass-stroke);
 }
 .card h3 { font-size: 17px; font-weight: 650; margin-bottom: 12px; letter-spacing: 0.1px; }
 .muted { color: var(--text2); font-size: 13px; }
@@ -170,7 +185,7 @@ input { font-family: inherit; color: var(--text); }
   backdrop-filter: var(--glass-blur);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--glass-stroke);
   overflow: hidden;
 }
 @media (prefers-color-scheme: dark) {
@@ -243,7 +258,7 @@ input { font-family: inherit; color: var(--text); }
   border-radius: var(--radius);
   padding: 10px 12px; margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--glass-stroke);
 }
 .filter-bar input[type="search"] {
   width: 100%; border: none; outline: none; background: rgba(120, 120, 128, 0.10);
@@ -340,7 +355,7 @@ input { font-family: inherit; color: var(--text); }
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-sm);
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--glass-stroke);
 }
 @media (prefers-color-scheme: dark) {
   .form-group { border-color: rgba(255, 255, 255, 0.08); }
@@ -354,7 +369,7 @@ input { font-family: inherit; color: var(--text); }
   border-radius: var(--radius); font-size: 16px; font-weight: 600;
   margin-bottom: 12px; text-align: center;
   box-shadow: var(--shadow-sm);
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--glass-stroke);
   transition: transform 0.12s ease, opacity 0.12s ease;
 }
 .btn-block:active { transform: scale(0.98); opacity: 0.85; }
@@ -392,6 +407,23 @@ input { font-family: inherit; color: var(--text); }
 }
 .tab-add:active { transform: scale(0.9); box-shadow: 0 2px 8px rgba(255,140,38,0.35); }
 
+/* ---------- 头像 ---------- */
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 6px rgba(16, 12, 8, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  .avatar { border-color: rgba(255, 255, 255, 0.75); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+}
+.avatar-lg {
+  width: 88px; height: 88px;
+  margin: 0 auto 12px;
+  box-shadow: 0 4px 16px rgba(16, 12, 8, 0.22);
+}
+
 /* ---------- 弹层（滑入 + 毛玻璃卡片） ---------- */
 .sheet-mask {
   position: fixed; inset: 0; z-index: 50;
@@ -401,7 +433,10 @@ input { font-family: inherit; color: var(--text); }
 }
 @keyframes maskIn { from { opacity: 0; } to { opacity: 1; } }
 .sheet {
-  background: var(--bg);
+  background: var(--sheet-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke);
   width: 100%; max-width: 560px;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 12px 16px calc(20px + var(--safe-bottom));
@@ -484,4 +519,16 @@ input { font-family: inherit; color: var(--text); }
 /* 减少动效偏好 */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- iOS 26 Liquid Glass：玻璃表面渐变反光 ---------- */
+.card, .day-group, .filter-bar, .form-group, .btn-block, .dialog {
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-shadow);
+}
+.tab-bar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 -8px 24px rgba(64, 70, 140, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  .tab-bar { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 -8px 24px rgba(0, 0, 0, 0.35); }
 }

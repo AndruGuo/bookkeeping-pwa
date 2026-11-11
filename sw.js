@@ -1,8 +1,9 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v7';
+const CACHE_NAME = 'bookkeep-v9';
 const ASSETS = [
   './',
   './index.html',
+  './assets/avatar.png',
   './manifest.json',
   './css/style.css',
   './js/util.js',
