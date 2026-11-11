@@ -44,7 +44,7 @@ input { font-family: inherit; color: var(--ink); }
   height: calc(var(--nav-h) + var(--safe-top));
   padding-top: var(--safe-top);
   display: flex; align-items: center;
-  background: var(--head);
+  background: var(--primary);
 }
 .nav-bar h1 {
   flex: 1; text-align: center;
