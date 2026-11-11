@@ -8,7 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="记账本">
-<meta name="theme-color" content="#FF8C26">
+<meta name="theme-color" content="#FF8C26" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0E10" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
@@ -17,6 +18,8 @@
 </head>
 <body>
 <div id="app">
+  <!-- 离线横幅 -->
+  <div id="offlineBanner" class="offline-banner hidden">⚠️ 离线 - 无法同步</div>
   <!-- 顶部导航 -->
   <header class="nav-bar">
     <button id="monthPrev" class="nav-btn" aria-label="上一月">‹</button>
@@ -87,6 +90,7 @@
   <div id="toast" class="toast hidden"></div>
 </div>
 
+<script src="js/vendor/chart.umd.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

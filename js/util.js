@@ -18,32 +18,6 @@ export function iconEmoji(sfName) {
   return SF_TO_EMOJI[sfName] || '🏷️';
 }
 
-// 内置分类种子数据（与 SeedData.swift 一致）
-export const SEED_CATEGORIES = [
-  // 支出
-  { name: '餐饮', icon: 'fork.knife', type: EXPENSE, isSystem: 1, sortOrder: 0 },
-  { name: '交通', icon: 'car.fill', type: EXPENSE, isSystem: 1, sortOrder: 1 },
-  { name: '购物', icon: 'cart.fill', type: EXPENSE, isSystem: 1, sortOrder: 2 },
-  { name: '娱乐', icon: 'gamecontroller.fill', type: EXPENSE, isSystem: 1, sortOrder: 3 },
-  { name: '居住', icon: 'house.fill', type: EXPENSE, isSystem: 1, sortOrder: 4 },
-  { name: '水电煤', icon: 'bolt.fill', type: EXPENSE, isSystem: 1, sortOrder: 5 },
-  { name: '通讯', icon: 'phone.fill', type: EXPENSE, isSystem: 1, sortOrder: 6 },
-  { name: '医疗', icon: 'cross.case.fill', type: EXPENSE, isSystem: 1, sortOrder: 7 },
-  { name: '教育', icon: 'graduationcap.fill', type: EXPENSE, isSystem: 1, sortOrder: 8 },
-  { name: '旅行', icon: 'airplane', type: EXPENSE, isSystem: 1, sortOrder: 9 },
-  { name: '服饰', icon: 'tshirt.fill', type: EXPENSE, isSystem: 1, sortOrder: 10 },
-  { name: '运动', icon: 'dumbbell.fill', type: EXPENSE, isSystem: 1, sortOrder: 11 },
-  { name: '宠物', icon: 'pawprint.fill', type: EXPENSE, isSystem: 1, sortOrder: 12 },
-  { name: '其他', icon: 'ellipsis.circle.fill', type: EXPENSE, isSystem: 1, sortOrder: 13 },
-  // 收入
-  { name: '工资', icon: 'banknote.fill', type: INCOME, isSystem: 1, sortOrder: 0 },
-  { name: '奖金', icon: 'gift.fill', type: INCOME, isSystem: 1, sortOrder: 1 },
-  { name: '理财', icon: 'chart.line.uptrend.xyaxis', type: INCOME, isSystem: 1, sortOrder: 2 },
-  { name: '兼职', icon: 'briefcase.fill', type: INCOME, isSystem: 1, sortOrder: 3 },
-  { name: '红包', icon: 'envelope.fill', type: INCOME, isSystem: 1, sortOrder: 4 },
-  { name: '其他', icon: 'ellipsis.circle.fill', type: INCOME, isSystem: 1, sortOrder: 5 }
-];
-
 // 分类图表颜色
 export const CHART_COLORS = [
   '#FF8C26', '#F24D40', '#33BF73', '#3B82F6', '#A855F7', '#EC4899',

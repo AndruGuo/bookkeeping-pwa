@@ -1,15 +1,15 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v3';
+const CACHE_NAME = 'bookkeep-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './css/style.css',
   './js/util.js',
-  './js/db.js',
   './js/cloud.js',
   './js/app.js',
   './js/sw-register.js',
+  './js/vendor/chart.umd.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'

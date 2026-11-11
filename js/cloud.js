@@ -1,13 +1,6 @@
-// 云端同步层：Cloudflare API 为主存储，IndexedDB 为离线缓存
-// 策略：
-//  - 启动/网络恢复时 sync()：重放本地未同步的改动 → 拉取全量覆盖本地
-//  - 写操作：先发云端，成功后写本地；失败则只写本地并记入 pending，待下次 sync 重放
-//  - 冲突：以本地为准（重放 push），随后拉全量覆盖本地
-import * as db from './db.js';
-
-const PENDING_KEY = 'bk_pending';
-const LAST_SYNC_KEY = 'bk_last_sync';
-const SETTINGS_KEY = 'bk_backup_settings'; // 与旧设置共用一个 key（保留 API 地址设置）
+// 云端数据层：Cloudflare API 为唯一存储，本地不再缓存账单/分类
+// 本地仅保留：登录 token/username（localStorage）与 API 地址设置
+const SETTINGS_KEY = 'bk_backup_settings';
 const TOKEN_KEY = 'bk_token';
 const USERNAME_KEY = 'bk_username';
 export const DEFAULT_API = 'https://api.andru.de5.net';
@@ -18,21 +11,6 @@ export function loadSettings() {
   catch { return {}; }
 }
 function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
-
-function emptyPending() {
-  return { txAdds: [], txDeletes: [], catAdds: [], catDeletes: [], catIdMap: {} };
-}
-function loadPending() {
-  try { return { ...emptyPending(), ...(JSON.parse(localStorage.getItem(PENDING_KEY)) || {}) }; }
-  catch { return emptyPending(); }
-}
-function savePending(p) { localStorage.setItem(PENDING_KEY, JSON.stringify(p)); }
-
-export function lastSyncInfo() {
-  try { return JSON.parse(localStorage.getItem(LAST_SYNC_KEY)) || null; }
-  catch { return null; }
-}
-function setLastSync(info) { localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(info)); }
 
 // ---- 用户会话 ----
 export function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
@@ -48,10 +26,13 @@ function setSession(token, username) {
   }
 }
 
+function apiBase() {
+  return (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
+}
+
 // ---- 认证接口 ----
 export async function register(username, password, invite) {
-  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
-  const res = await fetch(base + '/api/register', {
+  const res = await fetch(apiBase() + '/api/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password, invite })
   });
@@ -62,8 +43,7 @@ export async function register(username, password, invite) {
 }
 
 export async function login(username, password) {
-  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
-  const res = await fetch(base + '/api/login', {
+  const res = await fetch(apiBase() + '/api/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   });
@@ -77,8 +57,7 @@ export async function logout() {
   const token = getToken();
   if (token) {
     try {
-      const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
-      await fetch(base + '/api/logout', { method: 'POST', headers: { 'X-Auth': token } });
+      await fetch(apiBase() + '/api/logout', { method: 'POST', headers: { 'X-Auth': token } });
     } catch { /* 忽略网络错误，本地照常登出 */ }
   }
   setSession(null);
@@ -86,16 +65,20 @@ export async function logout() {
 
 // ---- API 请求（X-Auth: session token）----
 async function api(path, opts = {}) {
-  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
   const token = getToken();
   if (!token) throw new Error('NOAUTH');
   const headers = { 'X-Auth': token };
   if (opts.body) headers['Content-Type'] = 'application/json';
-  const res = await fetch(base + path, {
-    method: opts.method || 'GET',
-    headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
+  let res;
+  try {
+    res = await fetch(apiBase() + path, {
+      method: opts.method || 'GET',
+      headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+  } catch {
+    throw new Error('网络不可用，请检查网络连接');
+  }
   if (res.status === 401) { setSession(null); throw new Error('登录已过期，请重新登录'); }
   if (!res.ok) throw new Error(`云端请求失败 (${res.status})`);
   return res.json();
@@ -103,8 +86,7 @@ async function api(path, opts = {}) {
 
 // 导出数据（返回 Blob，触发下载）
 export async function exportData() {
-  const base = (loadSettings().apiBase || DEFAULT_API).replace(/\/+$/, '');
-  const res = await fetch(base + '/api/export', { headers: { 'X-Auth': getToken() } });
+  const res = await fetch(apiBase() + '/api/export', { headers: { 'X-Auth': getToken() } });
   if (!res.ok) throw new Error(`导出失败 (${res.status})`);
   return res.blob();
 }
@@ -126,147 +108,50 @@ const txFromServer = (j) => ({
   id: j.id, type: j.type, amountInCents: j.amount_in_cents, categoryId: j.category_id,
   note: j.note || '', date: j.date, createdAt: j.created_at
 });
-const catToServer = (c) => ({
-  name: c.name, icon: c.icon, type: c.type, is_system: c.isSystem || 0, sort_order: c.sortOrder || 0
-});
 const catFromServer = (j) => ({
   id: j.id, name: j.name, icon: j.icon, type: j.type, isSystem: j.is_system || 0, sortOrder: j.sort_order || 0
 });
 
-// ---- 全量同步：重放 pending → 拉全量覆盖本地 ----
+// ---- 拉取全量（唯一的数据读取入口）----
+// 返回 { categories, transactions }；失败时抛出异常，由调用方提示且不改变 UI
 export async function sync() {
-  if (!isConfigured()) return { status: 'noauth' };
-  let server;
-  try {
-    server = await api('/api/data');
-  } catch (e) {
-    setLastSync({ at: Date.now(), ok: false, msg: e.message });
-    return { status: 'offline', msg: e.message };
-  }
-
-  const p = loadPending();
-  let localTxs = await db.getAllTransactions();
-  let localCats = await db.getCategories();
-
-  // 本地多出的记录 adopt 上去（仅当云端为空且本地有数据、无未重放项时，避免重复）
-  if (server.categories.length === 0 && localCats.length > 0 && p.catAdds.length === 0) {
-    p.catAdds = localCats.map((c) => ({ ...c }));
-  }
-  if (server.transactions.length === 0 && localTxs.length > 0 && p.txAdds.length === 0) {
-    p.txAdds = localTxs.map((t) => ({ ...t }));
-  }
-
-  // 重放 pending：失败的保留，下次再试
-  const remain = emptyPending();
-  remain.catIdMap = { ...p.catIdMap };
-  for (const c of p.catDeletes) {
-    try { await api('/api/cat/' + c.id, { method: 'DELETE' }); }
-    catch (e) { if (!/404/.test(e.message)) remain.catDeletes.push(c); }
-  }
-  for (const c of p.catAdds) {
-    try {
-      const j = await api('/api/cat', { method: 'POST', body: catToServer(c) });
-      remain.catIdMap[c.id] = j.id;
-    } catch (e) { remain.catAdds.push(c); }
-  }
-  for (const t of p.txAdds) {
-    try {
-      const body = txToServer(t);
-      body.category_id = remain.catIdMap[body.category_id] || body.category_id;
-      await api('/api/tx', { method: 'POST', body });
-    } catch (e) { remain.txAdds.push(t); }
-  }
-  for (const id of p.txDeletes) {
-    try { await api('/api/tx/' + id, { method: 'DELETE' }); }
-    catch (e) { if (!/404/.test(e.message)) remain.txDeletes.push(id); }
-  }
-  savePending(remain);
-
-  if (remain.txAdds.length || remain.catAdds.length || remain.txDeletes.length || remain.catDeletes.length) {
-    // 有未重放成功的改动：不覆盖本地（以本地为准），保持离线标记
-    setLastSync({ at: Date.now(), ok: false, msg: '部分改动未同步，将在下次重试' });
-    return { status: 'partial' };
-  }
-
-  // 全部重放成功：拉全量覆盖本地
-  server = await api('/api/data');
-  await db.replaceAll(
-    server.categories.map(catFromServer),
-    server.transactions.map(txFromServer)
-  );
-  setLastSync({ at: Date.now(), ok: true, txs: server.transactions.length, cats: server.categories.length });
-  return { status: 'ok', txs: server.transactions.length, cats: server.categories.length };
+  if (!isConfigured()) throw new Error('NOAUTH');
+  const server = await api('/api/data');
+  return {
+    categories: (server.categories || []).map(catFromServer)
+      .sort((a, b) => a.type - b.type || a.sortOrder - b.sortOrder || a.id - b.id),
+    transactions: (server.transactions || []).map(txFromServer)
+      .sort((a, b) => a.date - b.date || a.id - b.id)
+  };
 }
 
-// ---- 写操作：云端优先，失败则本地 + pending ----
+// ---- 写操作：直连云端，失败抛异常（不落本地、不进队列）----
 export async function addTransaction(fields) {
   const t = { ...fields, createdAt: Date.now() };
-  try {
-    const j = await api('/api/tx', { method: 'POST', body: txToServer(t) });
-    const rec = { ...t, id: j.id };
-    await db.putTransaction(rec);
-    return rec.id;
-  } catch (e) {
-    const id = await db.addTransaction(t);
-    const p = loadPending();
-    p.txAdds.push({ ...t, id });
-    savePending(p);
-    return id;
-  }
+  const j = await api('/api/tx', { method: 'POST', body: txToServer(t) });
+  return { ...t, id: j.id };
+}
+
+export async function updateTransaction(id, fields) {
+  const t = { ...fields, createdAt: fields.createdAt || Date.now() };
+  await api('/api/tx/' + id, { method: 'PUT', body: txToServer(t) });
+  return { ...t, id };
 }
 
 export async function deleteTransaction(id) {
-  const all = await db.getAllTransactions();
-  const t = all.find((x) => x.id === id);
-  const p = loadPending();
-  // 从未同步成功过的本地新增：直接丢弃，不请求云端
-  const pendIdx = p.txAdds.findIndex((x) => x.id === id);
-  if (pendIdx >= 0) {
-    p.txAdds.splice(pendIdx, 1);
-    savePending(p);
-    await db.deleteTransaction(id);
-    return;
-  }
-  let cloudDone = false;
-  try {
-    await api('/api/tx/' + id, { method: 'DELETE' });
-    cloudDone = true;
-  } catch (e) {
-    if (!/404/.test(e.message)) { p.txDeletes.push(id); savePending(p); }
-  }
-  await db.deleteTransaction(id);
-  return cloudDone;
+  await api('/api/tx/' + id, { method: 'DELETE' });
 }
 
 export async function addCategory(fields) {
   const c = { ...fields, isSystem: 0 };
-  try {
-    const j = await api('/api/cat', { method: 'POST', body: catToServer(c) });
-    const rec = { ...c, id: j.id };
-    await db.putCategory(rec);
-    return rec.id;
-  } catch (e) {
-    const id = await db.addCategory(c);
-    const p = loadPending();
-    p.catAdds.push({ ...c, id });
-    savePending(p);
-    return id;
-  }
+  const body = {
+    name: c.name, icon: c.icon, type: c.type,
+    is_system: 0, sort_order: c.sortOrder || 0
+  };
+  const j = await api('/api/cat', { method: 'POST', body });
+  return { ...c, id: j.id };
 }
 
 export async function deleteCategory(id) {
-  const p = loadPending();
-  const pendIdx = p.catAdds.findIndex((x) => x.id === id);
-  if (pendIdx >= 0) {
-    p.catAdds.splice(pendIdx, 1);
-    savePending(p);
-    await db.deleteCategory(id);
-    return;
-  }
-  try {
-    await api('/api/cat/' + id, { method: 'DELETE' });
-  } catch (e) {
-    if (!/404/.test(e.message)) { p.catDeletes.push({ id }); savePending(p); }
-  }
-  await db.deleteCategory(id);
+  await api('/api/cat/' + id, { method: 'DELETE' });
 }

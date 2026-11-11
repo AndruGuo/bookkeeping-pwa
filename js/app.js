@@ -4,7 +4,6 @@ import {
   monthKey, monthTitle, shiftMonth, monthRange, parseMonth, pad2,
   toast, confirmDialog, esc, CHART_COLORS
 } from './util.js';
-import * as db from './db.js';
 import * as cloud from './cloud.js';
 import { registerSW } from './sw-register.js';
 
@@ -17,13 +16,26 @@ const state = {
 };
 
 // ---------- 数据加载 ----------
-async function reload() {
-  const [categories, transactions] = await Promise.all([
-    db.getCategories(), db.getAllTransactions()
-  ]);
-  state.categories = categories;
-  state.transactions = transactions;
+async function refresh() {
+  // 纯云端：每次从云端拉全量；失败抛异常，由调用方提示且不改变 UI
+  const data = await cloud.sync();
+  state.categories = data.categories;
+  state.transactions = data.transactions;
   render();
+}
+
+// 写操作统一包装：成功后拉全量刷新 UI，失败只弹 toast，UI 状态不变
+async function cloudAction(fn, successMsg) {
+  try {
+    await fn();
+    await refresh();
+    if (successMsg) toast(successMsg);
+    return true;
+  } catch (e) {
+    if (/重新登录/.test(e.message || '')) { showAuthScreen(); return false; }
+    toast(e.message || '操作失败，请重试', 4000);
+    return false;
+  }
 }
 
 function catById(id) {
@@ -82,12 +94,20 @@ function summaryCardHTML() {
     </div>`;
 }
 
+// ---------- 空态 ----------
+function emptyArt(emoji, text, sub) {
+  return `<div class="empty"><span class="empty-art">${emoji}</span>${text}${sub ? `<span class="empty-sub">${sub}</span>` : ''}</div>`;
+}
+function emptyArtHome() {
+  return emptyArt('🧾', '本月暂无账单', '点击下方 ＋ 记一笔');
+}
+
 // ---------- 首页 ----------
 function renderHome() {
   const txs = monthTx().slice().reverse();
   let listHTML = '';
   if (txs.length === 0) {
-    listHTML = '<div class="empty">本月暂无账单<br><span style="font-size:12px">点击下方 ＋ 记一笔</span></div>';
+    listHTML = emptyArtHome();
   } else {
     const byDay = new Map();
     for (const t of txs) {
@@ -148,22 +168,117 @@ function categoryStats(type) {
   };
 }
 
-function donutSVG(stats) {
-  const size = 200, r = 80, cx = size / 2, cy = size / 2, inner = 0.6;
-  let angle = -Math.PI / 2;
-  const paths = stats.items.slice(0, 12).map((s, i) => {
-    const sweep = s.pct * Math.PI * 2;
-    const large = sweep > Math.PI ? 1 : 0;
-    const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
-    angle += sweep;
-    const x2 = cx + r * Math.cos(angle), y2 = cy + r * Math.sin(angle);
-    const ri = r * inner;
-    const x3 = cx + ri * Math.cos(angle), y3 = cy + ri * Math.sin(angle);
-    const x4 = cx + ri * Math.cos(angle - sweep), y4 = cy + ri * Math.sin(angle - sweep);
-    const color = CHART_COLORS[i % CHART_COLORS.length];
-    return `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)} L${x3.toFixed(2)},${y3.toFixed(2)} A${ri},${ri} 0 ${large} 0 ${x4.toFixed(2)},${y4.toFixed(2)} Z" fill="${color}"/>`;
-  }).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+// ---------- Chart.js 图表 ----------
+// 主题适配：读取当前深浅色
+function isDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+function chartTheme() {
+  const dark = isDark();
+  return {
+    text: dark ? '#98989F' : '#8E8E93',
+    grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    tooltipBg: dark ? 'rgba(44,44,46,0.95)' : 'rgba(28,28,30,0.92)'
+  };
+}
+const chartInstances = [];
+function destroyCharts() {
+  while (chartInstances.length) chartInstances.pop().destroy();
+}
+function tooltipStyle() {
+  const t = chartTheme();
+  return {
+    backgroundColor: t.tooltipBg,
+    titleColor: '#fff', bodyColor: '#fff',
+    padding: 10, cornerRadius: 10, displayColors: false,
+    titleFont: { weight: '600' },
+    callbacks: { label: (ctx) => ` ¥${(ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed) / 100}` }
+  };
+}
+
+// 近 30 天支出/收入趋势（双平滑折线）
+function mountTrendChart() {
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  const days = 30;
+  const labels = [], exp = [], inc = [];
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
+    let e = 0, n = 0;
+    for (const t of state.transactions) {
+      if (t.date >= dayStart && t.date < dayEnd) {
+        if (t.type === EXPENSE) e += t.amountInCents; else n += t.amountInCents;
+      }
+    }
+    labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    exp.push(e / 100); inc.push(n / 100);
+  }
+  const th = chartTheme();
+  chartInstances.push(new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '支出', data: exp, borderColor: '#F24D40', backgroundColor: 'rgba(242,77,64,0.12)',
+          fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 4 },
+        { label: '收入', data: inc, borderColor: '#33BF73', backgroundColor: 'rgba(51,191,115,0.10)',
+          fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom', labels: { color: th.text, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 16 }
+        },
+        tooltip: tooltipStyle()
+      },
+      scales: {
+        x: { ticks: { color: th.text, maxTicksLimit: 6, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { color: th.text, maxTicksLimit: 5 }, grid: { color: th.grid }, border: { display: false } }
+      }
+    }
+  }));
+}
+
+// 当月分类支出占比（环形图，图例点击可过滤）
+function mountDoughnutChart() {
+  const canvas = document.getElementById('donutChart');
+  if (!canvas) return;
+  const stats = categoryStats(EXPENSE);
+  const items = stats.items.slice(0, 12);
+  const th = chartTheme();
+  chartInstances.push(new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: items.map((it) => it.category.name),
+      datasets: [{
+        data: items.map((it) => it.amount / 100),
+        backgroundColor: CHART_COLORS.slice(0, items.length),
+        borderWidth: 2,
+        borderColor: isDark() ? '#1C1C1E' : '#FFFFFF',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: th.text, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 12, font: { size: 12 } }
+        },
+        tooltip: tooltipStyle()
+      }
+    }
+  }));
+}
+function mountCharts() {
+  if (state.tab !== 'stats' || typeof Chart === 'undefined') return;
+  mountTrendChart();
+  mountDoughnutChart();
 }
 
 function renderStats() {
@@ -182,11 +297,6 @@ function renderStats() {
     const up = change > 0;
     return `<div style="font-size:12px;font-weight:600;color:${up ? 'var(--expense)' : 'var(--income)'}">${up ? '↑' : '↓'} ${(Math.abs(change) * 100).toFixed(1)}%</div>`;
   };
-
-  // 饼图图例
-  const legend = exp.items.slice(0, 12).map((it, i) =>
-    `<span><span class="dot" style="background:${CHART_COLORS[i % CHART_COLORS.length]}"></span>${esc(it.category.name)} ${(it.pct * 100).toFixed(0)}%</span>`
-  ).join('');
 
   // 每日支出柱状图
   const { year, month } = parseMonth(state.month);
@@ -224,7 +334,7 @@ function renderStats() {
   const rankStats = state.filterType === EXPENSE ? exp : inc;
   const rankColor = state.filterType === EXPENSE ? 'var(--expense)' : 'var(--income)';
   const rankHTML = rankStats.items.length === 0
-    ? `<div class="empty">本月暂无${state.filterType === EXPENSE ? '支出' : '收入'}</div>`
+    ? emptyArt('🏷️', `本月暂无${state.filterType === EXPENSE ? '支出' : '收入'}`)
     : rankStats.items.map((it, i) => `
       <div class="rank-item">
         <span class="rank-num ${i < 3 ? 'top' : ''}">${i + 1}</span>
@@ -236,8 +346,15 @@ function renderStats() {
         <span class="tx-amount" style="color:${rankColor}">¥${fmtCents(it.amount)}</span>
       </div>`).join('');
 
+  // 近 30 天趋势
+  const trendEmpty = state.transactions.length === 0;
+
   return `<div class="page">
     ${summaryCardHTML()}
+    <div class="card">
+      <h3>近 30 天收支趋势</h3>
+      ${trendEmpty ? emptyArt('📉', '暂无收支数据', '记一笔后即可看到趋势曲线') : '<div class="chart-box"><canvas id="trendChart"></canvas></div>'}
+    </div>
     <div class="card">
       <h3>月度环比</h3>
       <div class="mom-row">
@@ -257,12 +374,12 @@ function renderStats() {
     <div class="card">
       <h3>支出分类占比</h3>
       ${exp.items.length === 0
-        ? '<div class="empty">本月暂无支出</div>'
-        : `<div class="pie-wrap">${donutSVG(exp)}</div><div class="pie-legend">${legend}</div>`}
+        ? emptyArt('🍩', '本月暂无支出', '分类占比会在这里展示')
+        : '<div class="pie-wrap"><canvas id="donutChart"></canvas></div>'}
     </div>
     <div class="card">
       <h3>每日支出趋势</h3>
-      ${exp.total === 0 ? '<div class="empty">本月暂无支出</div>' : `<div class="bar-chart">${bars}</div>`}
+      ${exp.total === 0 ? emptyArt('📊', '本月暂无支出') : `<div class="bar-chart">${bars}</div>`}
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -277,7 +394,7 @@ function renderStats() {
     <div class="card">
       <h3>${year}年收支对比</h3>
       ${yearlyExp.every((v) => v === 0) && yearlyInc.every((v) => v === 0)
-        ? '<div class="empty">本年暂无数据</div>'
+        ? emptyArt('🗓️', '本年暂无数据')
         : `<div class="bar-chart" style="height:160px">${yearBars}</div>
            <div class="pie-legend"><span><span class="dot" style="background:rgba(242,77,64,0.8)"></span>支出</span><span><span class="dot" style="background:rgba(51,191,115,0.8)"></span>收入</span></div>`}
     </div>
@@ -309,11 +426,6 @@ function renderCategories() {
 
 // ---------- 设置页 ----------
 function renderSettings() {
-  const syncInfo = cloud.lastSyncInfo();
-  const syncStatus = (syncInfo ? (syncInfo.ok
-    ? `上次同步成功：${new Date(syncInfo.at).toLocaleString('zh-CN')}（${syncInfo.txs} 笔账单）`
-    : `<span style="color:var(--expense)">上次同步失败：${esc(syncInfo.msg || '网络不可用')}（离线模式，改动已保存本地）</span>`)
-    : '尚未同步');
   return `<div class="page">
     <div class="section-title">账号</div>
     <div class="card" style="padding:0">
@@ -326,8 +438,7 @@ function renderSettings() {
     <div class="form-group">
       <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(cloud.loadSettings().apiBase || '')}"></div>
     </div>
-    <div class="status-text">${syncStatus}</div>
-    <div class="status-text">数据以云端为主存储，本机 IndexedDB 作为离线缓存；网络不可用时改动保存本地，恢复后自动同步。</div>
+    <div class="status-text">数据实时保存在云端，所有改动直接同步到服务器；断网时无法读写，恢复网络后自动可用。</div>
     <div class="section-title">预算</div>
     <div class="form-group">
       <div class="form-row"><label>月度预算（元）</label><input id="setBudget" type="number" inputmode="decimal" placeholder="不设置" value="${monthlyBudget() || ''}"></div>
@@ -340,6 +451,7 @@ function renderSettings() {
 // ---------- 渲染 ----------
 function render() {
   updateNav();
+  destroyCharts();
   const container = document.getElementById('pageContainer');
   if (state.tab === 'home') container.innerHTML = renderHome();
   else if (state.tab === 'stats') container.innerHTML = renderStats();
@@ -347,6 +459,7 @@ function render() {
   else container.innerHTML = renderSettings();
   container.scrollTop = 0;
   bindPageEvents();
+  mountCharts();
 }
 
 // ---------- 页面事件 ----------
@@ -364,9 +477,7 @@ function bindPageEvents() {
       const id = Number(el.dataset.delcat);
       const used = state.transactions.some((t) => t.categoryId === id);
       if (await confirmDialog(used ? '该分类下已有账单，删除后账单将显示为「未知分类」，确定删除？' : '确定删除该分类？')) {
-        await cloud.deleteCategory(id);
-        await reload();
-        toast('已删除');
+        await cloudAction(() => cloud.deleteCategory(id), '已删除');
       }
     });
   });
@@ -404,16 +515,14 @@ function bindPageEvents() {
       if (!(await confirmDialog('再次确认：真的要清空全部数据吗？'))) return;
       try {
         await cloud.wipeData();
-        await db.replaceAll([], []);
-        localStorage.removeItem('bk_pending');
         toast('✅ 已清空');
-        await reload();
+        await refresh();
       } catch (e) {
         toast('清空失败：' + e.message, 4000);
       }
     });
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      if (!(await confirmDialog('退出后将停止云同步，本地缓存数据仍保留，确定退出？'))) return;
+      if (!(await confirmDialog('确定退出登录？'))) return;
       await cloud.logout();
       location.reload();
     });
@@ -434,8 +543,7 @@ function bindPageEvents() {
 
 // ---------- 账单详情 ----------
 async function showTxDetail(id) {
-  const all = await db.getAllTransactions();
-  const t = all.find((x) => x.id === id);
+  const t = state.transactions.find((x) => x.id === id);
   if (!t) return;
   const c = catById(t.categoryId);
   const mask = document.createElement('div');
@@ -464,10 +572,8 @@ async function showTxDetail(id) {
   mask.addEventListener('click', (e) => { if (e.target === mask) mask.remove(); });
   mask.querySelector('#txDel').addEventListener('click', async () => {
     if (await confirmDialog('确定删除该账单？')) {
-      await cloud.deleteTransaction(id);
-      mask.remove();
-      await reload();
-      toast('已删除');
+      const ok = await cloudAction(() => cloud.deleteTransaction(id), '已删除');
+      if (ok) mask.remove();
     }
   });
 }
@@ -517,10 +623,8 @@ async function showAddCategory() {
       return toast('同名分类已存在');
     }
     const maxSort = Math.max(0, ...state.categories.filter((c) => c.type === type).map((c) => c.sortOrder));
-    await cloud.addCategory({ name, icon, type, sortOrder: maxSort + 1 });
+    await cloudAction(() => cloud.addCategory({ name, icon, type, sortOrder: maxSort + 1 }), '已添加');
     mask.remove();
-    await reload();
-    toast('已添加');
   });
 }
 
@@ -571,16 +675,15 @@ async function saveAdd() {
   if (addCategoryId === null) return toast('请选择分类');
   const dateStr = document.getElementById('dateInput').value;
   const date = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : Date.now();
-  await cloud.addTransaction({
+  const ok = await cloudAction(() => cloud.addTransaction({
     type: addType,
     amountInCents: amount,
     categoryId: addCategoryId,
     note: document.getElementById('noteInput').value.trim(),
     date
-  });
+  }), '已记账');
+  if (!ok) return; // 失败：保留输入，不关闭弹层
   document.getElementById('addSheet').classList.add('hidden');
-  await reload();
-  toast('已记账');
 }
 
 // ---------- 登录 / 注册页 ----------
@@ -623,7 +726,7 @@ function showAuthScreen(mode = 'login') {
       if (mode === 'login') await cloud.login(user, pwd);
       else await cloud.register(user, pwd, invite);
       toast(`欢迎，${cloud.getUsername()}`);
-      await initDBAndRender();
+      await initAndRender();
     } catch (e) {
       msg.textContent = e.message;
     } finally { btn.disabled = false; }
@@ -687,36 +790,44 @@ function init() {
   document.getElementById('addSave').addEventListener('click', saveAdd);
 
   registerSW();
-  initDBAndRender();
+  setupOfflineBanner();
+  initAndRender();
 }
 
-async function initDBAndRender() {
+// ---------- 离线横幅 ----------
+function updateOfflineBanner() {
+  const el = document.getElementById('offlineBanner');
+  if (el) el.classList.toggle('hidden', navigator.onLine);
+}
+
+function setupOfflineBanner() {
+  updateOfflineBanner();
+  window.addEventListener('offline', updateOfflineBanner);
+  window.addEventListener('online', async () => {
+    updateOfflineBanner();
+    // 网络恢复：重新拉取全量
+    if (cloud.isAuthed()) {
+      try {
+        await refresh();
+        toast('网络已恢复，云端数据已更新');
+      } catch (e) { /* 仍然失败：保持当前数据 */ }
+    }
+  });
+}
+
+async function initAndRender() {
   // 登录门：无 token 时先显示登录/注册页
   if (!cloud.isAuthed()) {
     showAuthScreen();
     return;
   }
-  await db.initDB();
-  await reload();
-  // 云端为主：启动时全量同步，失败则离线模式（沿用本地数据）
   try {
-    const r = await cloud.sync();
-    if (r.status === 'ok') {
-      await reload();
-    } else if (r.status === 'offline') {
-      toast('当前离线，使用本地数据', 4000);
-    }
+    await refresh(); // 启动即从云端拉全量
   } catch (e) {
-    if (/重新登录/.test(e.message || '')) { showAuthScreen(); return; }
-    /* 保持本地数据 */
+    if (/NOAUTH|重新登录/.test(e.message || '')) { showAuthScreen(); return; }
+    toast(e.message || '云端数据加载失败，请检查网络', 4000);
+    updateOfflineBanner();
   }
-  // 网络恢复时自动重试同步
-  window.addEventListener('online', async () => {
-    try {
-      const r = await cloud.sync();
-      if (r.status === 'ok') { toast('网络已恢复，云端同步完成'); await reload(); }
-    } catch (e) { /* 忽略 */ }
-  });
 }
 
 init();
