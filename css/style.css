@@ -14,7 +14,7 @@
   --radius: 16px;
   --radius-lg: 20px;
   --nav-h: 48px;
-  --tab-h: 58px;
+  --tab-h: 50px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
@@ -352,8 +352,8 @@ input { font-family: inherit; color: var(--ink); }
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
   height: var(--tab-h);
-  display: flex; align-items: flex-end;
-  padding-bottom: 4px;
+  display: flex; align-items: center;
+  padding-bottom: 2px;
   background: #fff;
   border-top: 1px solid var(--sep);
 }
