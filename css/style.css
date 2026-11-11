@@ -351,8 +351,7 @@ input { font-family: inherit; color: var(--ink); }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom));
-  padding-bottom: 0;
+  height: var(--tab-h);
   display: flex; align-items: center;
   background: #fff;
   border-top: 1px solid var(--sep);
