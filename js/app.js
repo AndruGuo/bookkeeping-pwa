@@ -134,7 +134,7 @@ function headSummaryCardHTML(withBudget, withSwitch = true) {
       </div>
       <div style="font-size:12px;color:#444;margin-top:4px">月预算 ¥${budget.toLocaleString('en-US')}，已用 ${pct}%</div>`;
   }
-  return `<div class="home-head">${withSwitch ? monthSwitchHTML(false) : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
+  return `<div class="home-head">${withSwitch ? monthSwitchHTML(true) : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
 }
 
 // ---------- 空态 ----------
