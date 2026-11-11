@@ -371,7 +371,7 @@ input { font-family: inherit; color: var(--ink); }
 .tab-item.active .tab-icon svg .ic-fill { fill: var(--primary); stroke: var(--ink); }
 .tab-add svg { width: 28px; height: 28px; display: block; }
 .tab-add {
-  width: 56px; height: 56px; margin: 0 4px;
+  width: 46px; height: 46px; margin: 0 6px 8px;
   display: flex; align-items: center; justify-content: center; border: none;
   border-radius: 50%; background: var(--primary); color: var(--ink);
   flex-shrink: 0; align-self: center;
