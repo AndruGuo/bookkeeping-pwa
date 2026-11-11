@@ -184,7 +184,7 @@ function filterBarHTML() {
     `<option value="${c.id}" ${String(c.id) === String(state.filter.cat) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   return `
     <div class="filter-bar">
-      <input id="searchInput" type="search" placeholder="<svg viewBox="0 0 24 24" style="width:14px;height:14px;vertical-align:-2px" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg> 搜索备注 / 分类" value="${esc(state.filter.q)}" autocomplete="off">
+      <input id="searchInput" type="search" placeholder="搜索备注 / 分类" value="" autocomplete="off">
       <div class="filter-selects">
         <select id="filterCat">
           <option value="">全部分类</option>${catOpts}
