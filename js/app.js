@@ -12,7 +12,8 @@ const state = {
   month: monthKey(new Date()),
   categories: [],
   transactions: [],
-  filterType: EXPENSE // 统计页排行切换
+  filterType: EXPENSE, // 统计页排行切换
+  filter: { q: '', cat: '', scope: 'month' } // 账单搜索/筛选
 };
 
 // ---------- 数据加载 ----------
@@ -22,6 +23,8 @@ async function refresh() {
   state.categories = data.categories;
   state.transactions = data.transactions;
   render();
+  // sync 成功（非离线）后检查周期模板，到期自动创建账单
+  if (!cloud.isOffline()) checkRecurring().catch(() => {});
 }
 
 // 静默补传/刷新：不弹错误 toast，只更新离线横幅
@@ -54,6 +57,18 @@ function catById(id) {
 function monthTx() {
   const { start, end } = monthRange(state.month);
   return state.transactions.filter((t) => t.date >= +start && t.date < +end);
+}
+
+// ---------- 分类使用频次（bk_cat_freq：记账时更新，用于常用分类置顶） ----------
+function loadCatFreq() {
+  try { return JSON.parse(localStorage.getItem('bk_cat_freq')) || {}; }
+  catch { return {}; }
+}
+function bumpCatFreq(id) {
+  if (id === null) return;
+  const f = loadCatFreq();
+  f[id] = (f[id] || 0) + 1;
+  try { localStorage.setItem('bk_cat_freq', JSON.stringify(f)); } catch { /* 配额满：忽略 */ }
 }
 
 function monthSummary() {
@@ -111,9 +126,50 @@ function emptyArtHome() {
   return emptyArt('🧾', '本月暂无账单', '点击下方 ＋ 记一笔');
 }
 
-// ---------- 首页 ----------
+// ---------- 首页（含搜索/筛选） ----------
+// 纯前端过滤：对云端/缓存数据按备注、分类名、分类、月份范围筛选
+function filteredTx() {
+  const { q, cat, scope } = state.filter;
+  let txs = state.transactions;
+  if (scope === 'month') {
+    const { start, end } = monthRange(state.month);
+    txs = txs.filter((t) => t.date >= +start && t.date < +end);
+  }
+  if (cat) txs = txs.filter((t) => String(t.categoryId) === String(cat));
+  if (q) {
+    const s = q.trim().toLowerCase();
+    if (s) txs = txs.filter((t) => {
+      const c = catById(t.categoryId);
+      return (t.note || '').toLowerCase().includes(s) || (c ? c.name.toLowerCase().includes(s) : false);
+    });
+  }
+  return txs;
+}
+
+function filterBarHTML() {
+  const catOpts = state.categories.map((c) =>
+    `<option value="${c.id}" ${String(c.id) === String(state.filter.cat) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  return `
+    <div class="filter-bar">
+      <input id="searchInput" type="search" placeholder="🔍 搜索备注 / 分类" value="${esc(state.filter.q)}" autocomplete="off">
+      <div class="filter-selects">
+        <select id="filterCat">
+          <option value="">全部分类</option>${catOpts}
+        </select>
+        <select id="filterMonth">
+          <option value="month" ${state.filter.scope === 'month' ? 'selected' : ''}>本月</option>
+          <option value="all" ${state.filter.scope === 'all' ? 'selected' : ''}>全部</option>
+        </select>
+      </div>
+    </div>`;
+}
+
 function renderHome() {
-  const txs = monthTx().slice().reverse();
+  return `<div class="page">${summaryCardHTML()}${filterBarHTML()}<div id="txList">${txListHTML()}</div></div>`;
+}
+
+function txListHTML() {
+  const txs = filteredTx().slice().reverse();
   let listHTML = '';
   if (txs.length === 0) {
     listHTML = emptyArtHome();
@@ -152,7 +208,7 @@ function renderHome() {
         </div>`;
     }
   }
-  return `<div class="page">${summaryCardHTML()}${listHTML}</div>`;
+  return listHTML;
 }
 
 // ---------- 统计页 ----------
@@ -252,6 +308,69 @@ function mountTrendChart() {
   }));
 }
 
+// 日历热力图（当月每日支出强度，CSS grid）
+function heatmapHTML() {
+  const { year, month } = parseMonth(state.month);
+  const days = new Date(year, month + 1, 0).getDate();
+  const daily = new Array(days + 1).fill(0);
+  for (const t of monthTx()) {
+    if (t.type === EXPENSE) daily[new Date(t.date).getDate()] += t.amountInCents;
+  }
+  const max = Math.max(...daily.slice(1), 1);
+  const firstDow = new Date(year, month, 1).getDay();
+  const todayKey = dateKey(new Date());
+  let cells = ['日', '一', '二', '三', '四', '五', '六'].map((w) => `<span class="hm-wd">${w}</span>`).join('');
+  cells += '<span></span>'.repeat(firstDow);
+  for (let d = 1; d <= days; d++) {
+    const v = daily[d];
+    const lvl = v === 0 ? 0 : Math.min(4, 1 + Math.floor((v / max) * 3.99));
+    const isToday = dateKey(new Date(year, month, d)) === todayKey;
+    cells += `<span class="hm-cell lv${lvl}${isToday ? ' today' : ''}" title="${d}日 ¥${fmtCents(v)}">${d}</span>`;
+  }
+  return `<div class="heatmap">${cells}</div>`;
+}
+
+// 近 6 个月收支对比（分组柱状图）
+function mountMonthlyBarChart() {
+  const canvas = document.getElementById('monthBarChart');
+  if (!canvas) return;
+  const labels = [], expData = [], incData = [];
+  for (let i = 5; i >= 0; i--) {
+    const mk = shiftMonth(state.month, -i);
+    const { start, end } = monthRange(mk);
+    let e = 0, n = 0;
+    for (const t of state.transactions) {
+      if (t.date >= +start && t.date < +end) {
+        if (t.type === EXPENSE) e += t.amountInCents; else n += t.amountInCents;
+      }
+    }
+    labels.push(`${parseMonth(mk).month + 1}月`);
+    expData.push(e / 100); incData.push(n / 100);
+  }
+  const th = chartTheme();
+  chartInstances.push(new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '支出', data: expData, backgroundColor: 'rgba(242,77,64,0.85)', borderRadius: 6, maxBarThickness: 22 },
+        { label: '收入', data: incData, backgroundColor: 'rgba(51,191,115,0.85)', borderRadius: 6, maxBarThickness: 22 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: th.text, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+        tooltip: tooltipStyle()
+      },
+      scales: {
+        x: { ticks: { color: th.text, maxRotation: 0 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: th.text, maxTicksLimit: 5 }, grid: { color: th.grid }, border: { display: false } }
+      }
+    }
+  }));
+}
+
 // 当月分类支出占比（环形图，图例点击可过滤）
 function mountDoughnutChart() {
   const canvas = document.getElementById('donutChart');
@@ -288,6 +407,7 @@ function mountCharts() {
   if (state.tab !== 'stats' || typeof Chart === 'undefined') return;
   mountTrendChart();
   mountDoughnutChart();
+  mountMonthlyBarChart();
 }
 
 function renderStats() {
@@ -350,7 +470,7 @@ function renderStats() {
         <span class="tx-icon ${state.filterType === EXPENSE ? 'expense' : 'income'}">${iconEmoji(it.category.icon)}</span>
         <span class="tx-info">
           <span class="name" style="font-size:14px">${esc(it.category.name)}</span>
-          <span class="note">${(it.pct * 100).toFixed(0)}%</span>
+          <span class="rank-bar"><span style="width:${Math.max(2, it.pct * 100).toFixed(1)}%;background:${rankColor}"></span></span>
         </span>
         <span class="tx-amount" style="color:${rankColor}">¥${fmtCents(it.amount)}</span>
       </div>`).join('');
@@ -358,11 +478,36 @@ function renderStats() {
   // 近 30 天趋势
   const trendEmpty = state.transactions.length === 0;
 
+  // 近 6 个月收支（月度对比柱状图数据）
+  const sixMonths = [];
+  for (let i = 5; i >= 0; i--) {
+    const mk = shiftMonth(state.month, -i);
+    const { start, end } = monthRange(mk);
+    let e = 0, n = 0;
+    for (const t of state.transactions) {
+      if (t.date >= +start && t.date < +end) {
+        if (t.type === EXPENSE) e += t.amountInCents; else n += t.amountInCents;
+      }
+    }
+    sixMonths.push({ label: `${parseMonth(mk).month + 1}月`, expense: e, income: n });
+  }
+  const sixEmpty = sixMonths.every((m) => m.expense === 0 && m.income === 0);
+
   return `<div class="page">
     ${summaryCardHTML()}
     <div class="card">
       <h3>近 30 天收支趋势</h3>
       ${trendEmpty ? emptyArt('📉', '暂无收支数据', '记一笔后即可看到趋势曲线') : '<div class="chart-box"><canvas id="trendChart"></canvas></div>'}
+    </div>
+    <div class="card">
+      <h3>近 6 个月收支对比</h3>
+      ${sixEmpty
+        ? emptyArt('📊', '暂无近 6 个月数据')
+        : '<div class="chart-box"><canvas id="monthBarChart"></canvas></div>'}
+    </div>
+    <div class="card">
+      <h3>当月支出日历</h3>
+      ${exp.total === 0 ? emptyArt('🗓️', '本月暂无支出') : `${heatmapHTML()}<div class="hm-legend">少 <span class="hm-dots"><span class="hm-dot lv0"></span><span class="hm-dot lv1"></span><span class="hm-dot lv2"></span><span class="hm-dot lv3"></span><span class="hm-dot lv4"></span></span> 多</div>`}
     </div>
     <div class="card">
       <h3>月度环比</h3>
@@ -433,6 +578,143 @@ function renderCategories() {
   </div>`;
 }
 
+// ---------- 周期记账（bk_recurring：模板存 localStorage，sync 成功后检查到期自动记账） ----------
+// 模板: { id, name, type, amountInCents, categoryId, period: 'weekly'|'monthly'|'yearly',
+//         startDow(0-6 周几), startDay(1-31 几号), startYmmd('MM-DD'), lastRun('YYYY-MM-DD') }
+function loadRecurring() {
+  try { return JSON.parse(localStorage.getItem('bk_recurring')) || []; }
+  catch { return []; }
+}
+function saveRecurring(list) {
+  localStorage.setItem('bk_recurring', JSON.stringify(list));
+}
+
+function recDesc(r) {
+  const c = catById(r.categoryId);
+  let when = '';
+  if (r.period === 'weekly') when = `周${'日一二三四五六'[r.startDow]}`;
+  else if (r.period === 'monthly') when = `每月 ${r.startDay} 日`;
+  else when = `每年 ${r.startYmmd.replace('-', ' 月 ')} 日`;
+  return `¥${fmtCents(r.amountInCents)} · ${c ? esc(c.name) : '未知分类'} · ${when}`;
+}
+
+function recurringRowsHTML() {
+  const list = loadRecurring();
+  if (!list.length) return '<div class="empty" style="padding:20px 0">暂无周期模板</div>';
+  return list.map((r) => `
+    <div class="tx-item">
+      <span class="tx-icon ${r.type === EXPENSE ? 'expense' : 'income'}">${iconEmoji(catById(r.categoryId)?.icon)}</span>
+      <span class="tx-info">
+        <span class="name">${esc(r.name)}</span>
+        <span class="note">${recDesc(r)}${r.lastRun ? ` · 上次 ${r.lastRun}` : ''}</span>
+      </span>
+      <button class="text-btn" style="color:var(--expense)" data-delrecur="${r.id}">删除</button>
+    </div>`).join('');
+}
+
+function showAddRecurring() {
+  const mask = document.createElement('div');
+  mask.className = 'sheet-mask';
+  mask.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-header">
+        <button class="text-btn" id="recCancel">取消</button>
+        <h2>添加周期模板</h2>
+        <button class="text-btn primary" id="recSave">保存</button>
+      </div>
+      <div class="seg-tabs">
+        <button class="seg active" data-rtype="0">支出</button>
+        <button class="seg" data-rtype="1">收入</button>
+      </div>
+      <div class="form-group">
+        <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>名称</label><input id="recName" type="text" placeholder="如：房租" maxlength="20"></div>
+        <div class="form-row plain"><label>金额（元）</label><input id="recAmount" type="text" inputmode="decimal" placeholder="0.00"></div>
+        <div class="form-row plain"><label>分类</label><select id="recCat"></select></div>
+        <div class="form-row plain"><label>周期</label><select id="recPeriod"><option value="weekly">每周</option><option value="monthly" selected>每月</option><option value="yearly">每年</option></select></div>
+        <div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>起始日</label><input id="recStart" type="date"></div>
+      </div>
+      <div class="status-text">到期后将自动创建账单；起始日决定每周几 / 每月几号 / 每年哪天执行。</div>
+    </div>`;
+  document.body.appendChild(mask);
+  let type = EXPENSE;
+  const catSel = mask.querySelector('#recCat');
+  const fillCats = () => {
+    catSel.innerHTML = state.categories.filter((c) => c.type === type)
+      .map((c) => `<option value="${c.id}">${iconEmoji(c.icon)} ${esc(c.name)}</option>`).join('');
+  };
+  fillCats();
+  mask.querySelectorAll('[data-rtype]').forEach((b) => b.addEventListener('click', () => {
+    mask.querySelectorAll('[data-rtype]').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    type = Number(b.dataset.rtype);
+    fillCats();
+  }));
+  mask.querySelector('#recCancel').addEventListener('click', () => mask.remove());
+  mask.addEventListener('click', (e) => { if (e.target === mask) mask.remove(); });
+  mask.querySelector('#recSave').addEventListener('click', () => {
+    const name = mask.querySelector('#recName').value.trim();
+    const amount = Math.round(parseFloat(mask.querySelector('#recAmount').value.replace(/[,，\s]/g, '')) * 100);
+    const startVal = mask.querySelector('#recStart').value;
+    if (!name) return toast('请填写名称');
+    if (!amount || amount <= 0) return toast('请输入有效金额');
+    if (!startVal) return toast('请选择起始日');
+    const start = new Date(startVal + 'T12:00:00');
+    const period = mask.querySelector('#recPeriod').value;
+    const list = loadRecurring();
+    list.push({
+      id: Date.now(),
+      name,
+      type,
+      amountInCents: amount,
+      categoryId: Number(catSel.value),
+      period,
+      startDow: start.getDay(),
+      startDay: start.getDate(),
+      startYmmd: startVal.slice(5), // MM-DD
+      lastRun: ''
+    });
+    saveRecurring(list);
+    mask.remove();
+    render();
+    toast('✅ 周期模板已添加');
+  });
+}
+
+// 到期检查：sync 成功后调用，自动创建账单（lastRun 防重复，每天至多触发一次）
+async function checkRecurring() {
+  const list = loadRecurring();
+  if (!list.length) return;
+  const today = new Date();
+  const tk = dateKey(today);
+  const monthStr = monthKey(today);
+  const yearStr = String(today.getFullYear());
+  let created = 0;
+  for (const r of list) {
+    if (r.lastRun === tk) continue;
+    let due = false;
+    if (r.period === 'weekly') due = today.getDay() === r.startDow;
+    else if (r.period === 'monthly') due = monthStr !== (r.lastRun || '').slice(0, 7) && today.getDate() >= Math.min(r.startDay, new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate());
+    else if (r.period === 'yearly') due = yearStr !== (r.lastRun || '').slice(0, 4) && r.startYmmd === tk.slice(5);
+    if (!due) continue;
+    r.lastRun = tk; // 先记后建：即便失败也避免当天重复弹单
+    try {
+      await cloud.addTransaction({
+        type: r.type,
+        amountInCents: r.amountInCents,
+        categoryId: r.categoryId,
+        note: `${r.name}（周期记账）`,
+        date: new Date(tk + 'T12:00:00').getTime()
+      });
+      created++;
+    } catch { /* 失败时本地仍会排队补传（数据层兜底） */ }
+  }
+  saveRecurring(list);
+  if (created > 0) {
+    toast(`✅ 周期记账已创建 ${created} 笔`);
+    await refresh();
+  }
+}
+
 // ---------- 设置页 ----------
 function renderSettings() {
   return `<div class="page">
@@ -448,6 +730,9 @@ function renderSettings() {
       <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(cloud.loadSettings().apiBase || '')}"></div>
     </div>
     <div class="status-text">数据实时写入云端；本地保留缓存，断网时可正常记账查看，恢复网络后自动补传同步。</div>
+    <div class="section-title">周期记账</div>
+    <div class="card" style="padding:0">${recurringRowsHTML()}</div>
+    <button class="btn-block" id="addRecurBtn">＋ 添加周期模板</button>
     <div class="section-title">预算</div>
     <div class="form-group">
       <div class="form-row"><label>月度预算（元）</label><input id="setBudget" type="number" inputmode="decimal" placeholder="不设置" value="${monthlyBudget() || ''}"></div>
@@ -475,10 +760,35 @@ function render() {
 function bindPageEvents() {
   const container = document.getElementById('pageContainer');
 
-  // 账单详情
-  container.querySelectorAll('[data-txid]').forEach((el) => {
-    el.addEventListener('click', () => showTxDetail(Number(el.dataset.txid)));
-  });
+  // 首页搜索/筛选：只重绘账单列表，保持搜索框焦点
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    let searchTimer = null;
+    searchInput.addEventListener('input', () => {
+      state.filter.q = searchInput.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const list = document.getElementById('txList');
+        if (list) list.innerHTML = txListHTML();
+        bindTxListEvents();
+      }, 200);
+    });
+    const filterCat = document.getElementById('filterCat');
+    filterCat.addEventListener('change', () => {
+      state.filter.cat = filterCat.value;
+      document.getElementById('txList').innerHTML = txListHTML();
+      bindTxListEvents();
+    });
+    const filterMonth = document.getElementById('filterMonth');
+    filterMonth.addEventListener('change', () => {
+      state.filter.scope = filterMonth.value;
+      document.getElementById('txList').innerHTML = txListHTML();
+      bindTxListEvents();
+    });
+  }
+
+  // 账单列表项（局部重绘后可单独重绑）
+  bindTxListEvents();
 
   // 分类删除
   container.querySelectorAll('[data-delcat]').forEach((el) => {
@@ -501,6 +811,20 @@ function bindPageEvents() {
       render();
     });
   });
+
+  // 周期记账
+  const addRecurBtn = document.getElementById('addRecurBtn');
+  if (addRecurBtn) {
+    addRecurBtn.addEventListener('click', showAddRecurring);
+    container.querySelectorAll('[data-delrecur]').forEach((el) => {
+      el.addEventListener('click', async () => {
+        if (!(await confirmDialog('确定删除该周期模板？已创建的账单不受影响。'))) return;
+        saveRecurring(loadRecurring().filter((r) => String(r.id) !== el.dataset.delrecur));
+        render();
+        toast('已删除');
+      });
+    });
+  }
 
   // 设置页
   const exportBtn = document.getElementById('exportBtn');
@@ -548,6 +872,13 @@ function bindPageEvents() {
       toast('预算已保存');
     });
   }
+}
+
+// ---------- 账单列表项事件 ----------
+function bindTxListEvents() {
+  document.querySelectorAll('#txList [data-txid]').forEach((el) => {
+    el.addEventListener('click', () => showTxDetail(Number(el.dataset.txid)));
+  });
 }
 
 // ---------- 账单详情 ----------
@@ -643,7 +974,10 @@ let addCategoryId = null;
 
 function renderAddCategories() {
   const grid = document.getElementById('addCategories');
-  const list = state.categories.filter((c) => c.type === addType);
+  const freq = loadCatFreq();
+  // 常用分类置顶：按使用频次降序，其次按原有排序
+  const list = state.categories.filter((c) => c.type === addType)
+    .sort((a, b) => (freq[b.id] || 0) - (freq[a.id] || 0) || (a.sortOrder - b.sortOrder) || (a.id - b.id));
   if (addCategoryId === null || !list.some((c) => c.id === addCategoryId)) {
     addCategoryId = list.length ? list[0].id : null;
   }
@@ -692,6 +1026,7 @@ async function saveAdd() {
     date
   }), '已记账');
   if (!ok) return; // 失败：保留输入，不关闭弹层
+  bumpCatFreq(addCategoryId);
   document.getElementById('addSheet').classList.add('hidden');
 }
 
@@ -797,6 +1132,21 @@ function init() {
   document.getElementById('segExpense').addEventListener('click', () => { addType = EXPENSE; updateAddSeg(); renderAddCategories(); });
   document.getElementById('segIncome').addEventListener('click', () => { addType = INCOME; updateAddSeg(); renderAddCategories(); });
   document.getElementById('addSave').addEventListener('click', saveAdd);
+  // 快捷金额：+10/+50/+100 叠加到当前输入；自定义聚焦输入框
+  document.querySelectorAll('.quick-amounts .qa[data-amt]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const input = document.getElementById('amountInput');
+      const cur = parseFloat(input.value.replace(/[,，\s]/g, '')) || 0;
+      input.value = (cur + Number(b.dataset.amt)).toFixed(2).replace(/\.00$/, '');
+    });
+  });
+  document.getElementById('qaCustom').addEventListener('click', () => {
+    document.getElementById('amountInput').focus();
+  });
+  // 日期一键回到今天
+  document.getElementById('dateToday').addEventListener('click', () => {
+    document.getElementById('dateInput').value = dateKey(new Date());
+  });
 
   registerSW();
   setupOfflineBanner();

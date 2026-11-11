@@ -1,6 +1,6 @@
 /* 记账本 PWA — iOS 原生感 · 玻璃拟态 · 深浅色自适应 */
 :root {
-  --primary: #FF8C26;
+  --primary: #F68A1F;
   --primary-soft: #FF9F45;
   --expense: #F24D40;
   --income: #33BF73;
@@ -10,7 +10,7 @@
   --card-solid: #FFFFFF;
   --text: #1C1C1E;
   --text2: #8E8E93;
-  --sep: rgba(60, 60, 67, 0.13);
+  --sep: rgba(60, 60, 67, 0.10);
   --nav-bg: rgba(255, 251, 247, 0.78);
   --tab-bg: rgba(255, 255, 255, 0.78);
   --glass-blur: saturate(180%) blur(20px);
@@ -32,7 +32,7 @@
     --card-solid: #28282C;
     --text: #F2F2F7;
     --text2: #98989F;
-    --sep: rgba(84, 84, 88, 0.55);
+    --sep: rgba(84, 84, 88, 0.45);
     --nav-bg: rgba(20, 20, 22, 0.72);
     --tab-bg: rgba(28, 28, 30, 0.78);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
@@ -102,7 +102,7 @@ input { font-family: inherit; color: var(--text); }
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   border-radius: var(--radius);
-  padding: 16px; margin-bottom: 14px;
+  padding: 16px; margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
   border: 0.5px solid rgba(255, 255, 255, 0.35);
 }
@@ -164,7 +164,7 @@ input { font-family: inherit; color: var(--text); }
 
 /* ---------- 账单列表按日分组 ---------- */
 .day-group {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   background: var(--card);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
@@ -200,10 +200,80 @@ input { font-family: inherit; color: var(--text); }
 .tx-info .name { font-size: 16px; font-weight: 500; }
 .tx-info .note { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-amount { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.tx-amount.expense { color: var(--text); }
+.tx-amount.expense { color: var(--expense); }
 .tx-amount.income { color: var(--income); }
 
 /* ---------- 统计 ---------- */
+/* 分类排行进度条 */
+.rank-bar {
+  display: block; height: 4px; width: 100%;
+  background: rgba(120, 120, 128, 0.16); border-radius: 2px;
+  margin-top: 4px; overflow: hidden;
+}
+.rank-bar > span { display: block; height: 100%; border-radius: 2px; }
+
+/* 日历热力图（CSS grid） */
+.heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.hm-wd { font-size: 10px; color: var(--text2); text-align: center; padding-bottom: 2px; }
+.hm-cell {
+  aspect-ratio: 1; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text2);
+  background: rgba(120, 120, 128, 0.10);
+  font-variant-numeric: tabular-nums;
+}
+.hm-cell.lv1 { background: rgba(242, 77, 64, 0.18); }
+.hm-cell.lv2 { background: rgba(242, 77, 64, 0.38); color: var(--text); }
+.hm-cell.lv3 { background: rgba(242, 77, 64, 0.62); color: #fff; }
+.hm-cell.lv4 { background: rgba(242, 77, 64, 0.9); color: #fff; }
+.hm-cell.today { outline: 1.5px solid var(--primary); outline-offset: 1px; }
+.hm-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); margin-top: 10px; }
+.hm-dots { display: inline-flex; gap: 3px; }
+.hm-dot { width: 10px; height: 10px; border-radius: 3px; background: rgba(120, 120, 128, 0.10); }
+.hm-dot.lv1 { background: rgba(242, 77, 64, 0.18); }
+.hm-dot.lv2 { background: rgba(242, 77, 64, 0.38); }
+.hm-dot.lv3 { background: rgba(242, 77, 64, 0.62); }
+.hm-dot.lv4 { background: rgba(242, 77, 64, 0.9); }
+
+/* ---------- 首页搜索/筛选 ---------- */
+.filter-bar {
+  background: var(--card);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius);
+  padding: 10px 12px; margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
+}
+.filter-bar input[type="search"] {
+  width: 100%; border: none; outline: none; background: rgba(120, 120, 128, 0.10);
+  border-radius: 10px; padding: 8px 12px; font-size: 14px; color: var(--text);
+  -webkit-appearance: none; appearance: none;
+}
+.filter-selects { display: flex; gap: 8px; margin-top: 8px; }
+.filter-selects select {
+  flex: 1; border: none; outline: none; background: rgba(120, 120, 128, 0.10);
+  border-radius: 10px; padding: 7px 10px; font-size: 13px; color: var(--text);
+  -webkit-appearance: none; appearance: none;
+}
+
+/* ---------- 记一笔：快捷金额 / 今天按钮 ---------- */
+.quick-amounts { display: flex; gap: 8px; margin: 0 0 4px; }
+.qa {
+  flex: 1; padding: 9px 0; border-radius: 10px;
+  background: rgba(120, 120, 128, 0.12); color: var(--primary);
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.qa:active { transform: scale(0.94); background: rgba(246, 138, 31, 0.15); }
+.date-row { display: flex; align-items: center; gap: 10px; }
+.mini-btn {
+  padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: rgba(246, 138, 31, 0.14); color: var(--primary);
+  transition: transform 0.12s ease;
+}
+.mini-btn:active { transform: scale(0.92); }
+
 .chart-box { position: relative; height: 220px; padding: 4px 0; }
 .chart-box.tall { height: 240px; }
 .pie-wrap { display: flex; justify-content: center; padding: 8px 0; height: 200px; position: relative; }

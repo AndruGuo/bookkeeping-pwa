@@ -8,11 +8,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="记账本">
-<meta name="theme-color" content="#FF8C26" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#F68A1F" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E0E10" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
 <title>记账本</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -64,6 +64,12 @@
         <span class="currency">¥</span>
         <input id="amountInput" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off">
       </div>
+      <div class="quick-amounts">
+        <button class="qa" data-amt="10">+10</button>
+        <button class="qa" data-amt="50">+50</button>
+        <button class="qa" data-amt="100">+100</button>
+        <button class="qa" id="qaCustom">自定义</button>
+      </div>
       <div id="addCategories" class="icon-grid"></div>
       <div class="form-row">
         <label>备注</label>
@@ -71,7 +77,7 @@
       </div>
       <div class="form-row">
         <label>日期</label>
-        <input id="dateInput" type="date">
+        <span class="date-row"><button id="dateToday" class="mini-btn" type="button">今天</button><input id="dateInput" type="date"></span>
       </div>
     </div>
   </div>
