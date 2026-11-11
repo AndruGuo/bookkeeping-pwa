@@ -908,11 +908,13 @@ function bindPageEvents() {
     document.getElementById('quickExport').addEventListener('click', doExport);
     document.getElementById('quickChart').addEventListener('click', () => switchTab('stats'));
     document.getElementById('quickMore').addEventListener('click', () => switchTab('settings'));
-    // 首页头部月份切换
-    document.getElementById('monthPrevHome').addEventListener('click', () => {
+    // 首页头部月份切换（元素可能不存在于其它视图，须判空）
+    const mp = document.getElementById('monthPrevHome');
+    if (mp) mp.addEventListener('click', () => {
       state.month = shiftMonth(state.month, -1); render();
     });
-    document.getElementById('monthNextHome').addEventListener('click', () => {
+    const mn = document.getElementById('monthNextHome');
+    if (mn) mn.addEventListener('click', () => {
       state.month = shiftMonth(state.month, 1); render();
     });
   }
