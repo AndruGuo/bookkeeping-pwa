@@ -71,7 +71,7 @@ input { font-family: inherit; color: var(--ink); }
 
 /* ---------- 黄色首页头部（月份 + 收支汇总） ---------- */
 .home-head {
-  background: var(--head);
+  background: var(--primary);
   margin: -12px calc(50% - 50vw) 0;
   width: 100vw;
   padding: 6px 16px 14px;
@@ -329,7 +329,7 @@ input { font-family: inherit; color: var(--ink); }
 
 /* ---------- 设置页黄色头部 ---------- */
 .profile-head {
-  background: var(--head);
+  background: var(--primary);
   margin: -12px calc(50% - 50vw) 0;
   width: 100vw;
   max-width: 100vw;
