@@ -14,7 +14,7 @@
   --radius: 16px;
   --radius-lg: 20px;
   --nav-h: 48px;
-  --tab-h: 50px;
+  --tab-h: 58px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
@@ -351,9 +351,9 @@ input { font-family: inherit; color: var(--ink); }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: var(--tab-h);
+  height: calc(var(--tab-h) + var(--safe-bottom));
   display: flex; align-items: center;
-  padding-bottom: 2px;
+  padding-bottom: var(--safe-bottom);
   background: #fff;
   border-top: 1px solid var(--sep);
 }
