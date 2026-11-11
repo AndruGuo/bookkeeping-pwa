@@ -16,12 +16,21 @@ const state = {
 };
 
 // ---------- 数据加载 ----------
+// 离线时若本地有缓存，直接渲染缓存数据（云端仍为权威数据）
 async function refresh() {
-  // 纯云端：每次从云端拉全量；失败抛异常，由调用方提示且不改变 UI
-  const data = await cloud.sync();
+  const data = await cloud.sync(); // 成功返回云端最新；网络失败自动退回本地缓存
   state.categories = data.categories;
   state.transactions = data.transactions;
   render();
+}
+
+// 静默补传/刷新：不弹错误 toast，只更新离线横幅
+async function backgroundSync() {
+  if (!cloud.isAuthed()) return;
+  try {
+    await refresh();
+  } catch { /* 无缓存可用：保持现状 */ }
+  updateOfflineBanner();
 }
 
 // 写操作统一包装：成功后拉全量刷新 UI，失败只弹 toast，UI 状态不变
@@ -438,7 +447,7 @@ function renderSettings() {
     <div class="form-group">
       <div class="form-row"><label>API 地址</label><input id="setApiBase" type="text" placeholder="${esc(cloud.DEFAULT_API)}" value="${esc(cloud.loadSettings().apiBase || '')}"></div>
     </div>
-    <div class="status-text">数据实时保存在云端，所有改动直接同步到服务器；断网时无法读写，恢复网络后自动可用。</div>
+    <div class="status-text">数据实时写入云端；本地保留缓存，断网时可正常记账查看，恢复网络后自动补传同步。</div>
     <div class="section-title">预算</div>
     <div class="form-group">
       <div class="form-row"><label>月度预算（元）</label><input id="setBudget" type="number" inputmode="decimal" placeholder="不设置" value="${monthlyBudget() || ''}"></div>
@@ -797,7 +806,7 @@ function init() {
 // ---------- 离线横幅 ----------
 function updateOfflineBanner() {
   const el = document.getElementById('offlineBanner');
-  if (el) el.classList.toggle('hidden', navigator.onLine);
+  if (el) el.classList.toggle('hidden', !cloud.isOffline());
 }
 
 function setupOfflineBanner() {
@@ -805,13 +814,13 @@ function setupOfflineBanner() {
   window.addEventListener('offline', updateOfflineBanner);
   window.addEventListener('online', async () => {
     updateOfflineBanner();
-    // 网络恢复：重新拉取全量
-    if (cloud.isAuthed()) {
-      try {
-        await refresh();
-        toast('网络已恢复，云端数据已更新');
-      } catch (e) { /* 仍然失败：保持当前数据 */ }
-    }
+    // 网络恢复：冲刷队列 + 拉取全量
+    await backgroundSync();
+    if (cloud.isAuthed() && !cloud.isOffline()) toast('网络已恢复，数据已同步');
+  });
+  // 回前台/启动时补传
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') backgroundSync();
   });
 }
 
