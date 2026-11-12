@@ -1304,13 +1304,13 @@ function init() {
       const isHome = state.tab === 'home';
       const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
       job
-        .then(() => { toast(isHome ? '账本已更新' : '已刷新'); })
+        .then(() => {})
         .catch(() => {})
         .finally(() => {
           delete pc.dataset.refreshing;
           pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
           pc.style.transform = '';
-          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; setTimeout(() => loader.classList.add('hidden'), 200); }
+          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; loader.querySelector('.pull-text').textContent = '已更新'; setTimeout(() => loader.classList.add('hidden'), 700); }
         });
     }
   }, { passive: true });
