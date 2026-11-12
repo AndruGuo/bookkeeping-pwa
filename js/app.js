@@ -1294,6 +1294,10 @@ function init() {
     } else if (ld) {
       ld.classList.add('hidden');
     }
+    if (dist > 0 && dist <= 110) {
+      pc.style.transition = 'none';
+      pc.style.transform = 'translateY(' + (dist * 0.45).toFixed(1) + 'px)'; // 页面跟手，带阻尼
+    }
     if (dist > 75) {
       pc.dataset.refreshing = '1';
       const loader = pullLoader();
@@ -1304,9 +1308,25 @@ function init() {
         .catch(() => {})
         .finally(() => {
           delete pc.dataset.refreshing;
+          pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+          pc.style.transform = '';
           if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; setTimeout(() => loader.classList.add('hidden'), 200); }
         });
     }
+  }, { passive: true });
+  pc.addEventListener('touchend', () => {
+    if (!pc.dataset.refreshing && pc.style.transform) {
+      pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+      pc.style.transform = '';
+      const ld = pullLoader();
+      if (ld) { ld.style.opacity = ''; setTimeout(() => ld.classList.add('hidden'), 150); }
+    }
+  }, { passive: true });
+  pc.addEventListener('touchcancel', () => {
+    pc.style.transition = 'transform 0.3s ease';
+    pc.style.transform = '';
+    const ld = pullLoader();
+    if (ld) setTimeout(() => ld.classList.add('hidden'), 150);
   }, { passive: true });
 
   // 日期快捷选择：今天/昨天/前天
