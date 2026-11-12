@@ -1156,6 +1156,8 @@ function showAuthScreen(mode = 'login') {
     msg.textContent = '';
     if (!user || !pwd) { msg.textContent = '请填写用户名和密码'; return; }
     btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span>' + (mode === 'login' ? '登录中…' : '注册中…');
     try {
       if (mode === 'login') await cloud.login(user, pwd);
       else await cloud.register(user, pwd, invite);

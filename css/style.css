@@ -322,7 +322,17 @@ input { font-family: inherit; color: var(--ink); }
   margin-bottom: 12px; text-align: center;
   transition: transform 0.12s ease, opacity 0.12s ease;
 }
-.btn-block:active { transform: scale(0.98); opacity: 0.85; }
+.btn-block:active { transform: scale(0.95); opacity: 0.8; }
+.spinner {
+  display: inline-block; width: 14px; height: 14px; margin-right: 8px;
+  vertical-align: -2px; border: 2.5px solid rgba(0,0,0,0.25);
+  border-top-color: #222; border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.list-row:active, .cell:active, .quick-card:active, .text-btn:active, .seg:active { opacity: 0.6; }
+.list-row, .quick-card, .cell { transition: transform 0.12s ease, opacity 0.12s ease; }
+.list-row:active, .quick-card:active { transform: scale(0.97); }
 .btn-block.primary { background: var(--primary); }
 .btn-block.danger { color: var(--ink); }
 .section-title { font-size: 13px; color: var(--ink3); padding: 0 12px 6px; font-weight: 500; }
