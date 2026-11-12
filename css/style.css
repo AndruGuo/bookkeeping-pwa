@@ -333,23 +333,19 @@ input { font-family: inherit; color: var(--ink); }
 }
 .btn-block:active { transform: scale(0.95); opacity: 0.8; }
 /* 下拉刷新指示器 */
-/* 页头内嵌刷新转圈（无胶囊底） */
+/* 鲨鱼式下拉提示行（纯文字） */
 .pull-loader {
-  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 6px);
-  left: 50%; transform: translateX(-50%);
+  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 10px);
+  left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 15px; font-weight: 600; color: rgba(0,0,0,0.35);
   z-index: 30; pointer-events: none;
+  transition: opacity 0.2s ease;
 }
-.pull-loader .pull-text { display: none; }
-.pull-loader .spinner {
-  width: 26px; height: 26px; margin: 0;
-  border: 3.5px solid rgba(0,0,0,0.18);
-  border-top-color: var(--ink);
-  animation: spin 0.7s linear infinite;
-  animation-play-state: paused;
-}
-.pull-loader.on .spinner { animation-play-state: running; }
-.pull-loader { transition: opacity 0.25s ease; }
 .pull-loader.hidden { opacity: 0; }
+.pull-loader .spinner { width: 16px; height: 16px; margin: 0; border-width: 2.5px; border-color: rgba(0,0,0,0.2); border-top-color: rgba(0,0,0,0.55); }
+.pull-loader .spinner { display: none; }
+.pull-loader.on .spinner { display: inline-block; }
 /* 日期快捷 chips */
 .date-chips { display: flex; gap: 8px; }
 .date-chips .chip {

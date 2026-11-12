@@ -1282,20 +1282,29 @@ function init() {
     pullArmed = pc.scrollTop <= 0 && cloud.isAuthed() && state.tab === 'home'; // 仅明细页支持下拉刷新
     pullStartY = e.touches[0].clientY;
   }, { passive: true });
+  const pullLoader = () => document.getElementById('pullLoader');
   pc.addEventListener('touchmove', (e) => {
     if (!pullArmed || pc.dataset.refreshing) return;
-    if (e.touches[0].clientY - pullStartY > 75) {
+    const dist = e.touches[0].clientY - pullStartY;
+    const ld = pullLoader();
+    if (dist > 20 && ld) {
+      ld.classList.remove('hidden');
+      ld.querySelector('.pull-text').textContent = dist > 75 ? '松开立即刷新' : '下拉可以刷新';
+      ld.style.opacity = String(Math.min(1, (dist - 20) / 55));
+    } else if (ld) {
+      ld.classList.add('hidden');
+    }
+    if (dist > 75) {
       pc.dataset.refreshing = '1';
-      const loader = document.getElementById('pullLoader');
+      const loader = pullLoader();
       const isHome = state.tab === 'home';
-      if (loader) { loader.classList.add('on'); loader.classList.remove('hidden'); }
       const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
       job
         .then(() => { toast(isHome ? '账本已更新' : '已刷新'); })
         .catch(() => {})
         .finally(() => {
           delete pc.dataset.refreshing;
-          if (loader) { loader.classList.remove('on'); setTimeout(() => loader.classList.add('hidden'), 300); }
+          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; setTimeout(() => loader.classList.add('hidden'), 200); }
         });
     }
   }, { passive: true });
