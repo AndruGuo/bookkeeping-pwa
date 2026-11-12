@@ -1286,9 +1286,18 @@ function init() {
     if (!pullArmed || pc.dataset.refreshing) return;
     if (e.touches[0].clientY - pullStartY > 75) {
       pc.dataset.refreshing = '1';
-      toast('正在同步…');
-      Promise.resolve().then(() => refresh()).then(() => toast('账本已更新')).catch(() => {})
-        .finally(() => { delete pc.dataset.refreshing; });
+      const loader = document.getElementById('pullLoader');
+      if (loader) loader.classList.remove('hidden');
+      Promise.resolve().then(() => refresh())
+        .then(() => { toast('账本已更新'); })
+        .catch(() => {})
+        .finally(() => {
+          delete pc.dataset.refreshing;
+          if (loader) {
+            loader.querySelector('.pull-text').textContent = '已更新 ✓';
+            setTimeout(() => { loader.classList.add('hidden'); loader.querySelector('.pull-text').textContent = '正在同步…'; }, 600);
+          }
+        });
     }
   }, { passive: true });
 
@@ -1304,6 +1313,7 @@ function init() {
 
   registerSW();
   setupOfflineBanner();
+  if (!cloud.isAuthed()) { showAuthScreen(); return; } // 首屏无 token 直接进登录页
   initAndRender();
 }
 

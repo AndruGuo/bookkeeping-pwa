@@ -331,6 +331,17 @@ input { font-family: inherit; color: var(--ink); }
   transition: transform 0.12s ease, opacity 0.12s ease;
 }
 .btn-block:active { transform: scale(0.95); opacity: 0.8; }
+/* 下拉刷新指示器 */
+.pull-loader {
+  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 8px);
+  left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid var(--sep); border-radius: 20px;
+  padding: 8px 18px; font-size: 13px; font-weight: 600; color: var(--ink2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 30;
+  animation: fadeDown 0.2s ease;
+}
+.pull-loader.hidden { display: none; }
 /* 日期快捷 chips */
 .date-chips { display: flex; gap: 8px; }
 .date-chips .chip {
@@ -343,15 +354,15 @@ input { font-family: inherit; color: var(--ink); }
 @keyframes authIn { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
 .page-container > div { animation: authIn 0.35s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .ok-check {
-  display: inline-block; width: 16px; height: 16px; margin-right: 6px;
-  vertical-align: -3px; border-radius: 50%;
-  background: #34c759; color: #fff; font-size: 11px; line-height: 16px; text-align: center;
+  display: inline-block; width: 22px; height: 22px; margin-right: 8px;
+  vertical-align: -5px; border-radius: 50%;
+  background: #34c759; color: #fff; font-size: 14px; line-height: 22px; text-align: center;
   animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 .spinner {
-  display: inline-block; width: 14px; height: 14px; margin-right: 8px;
-  vertical-align: -2px; border: 2.5px solid rgba(0,0,0,0.25);
+  display: inline-block; width: 20px; height: 20px; margin-right: 10px;
+  vertical-align: -4px; border: 3px solid rgba(0,0,0,0.25);
   border-top-color: #222; border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -371,6 +382,7 @@ input { font-family: inherit; color: var(--ink); }
   padding: calc(16px + var(--safe-top) / 2) 16px 18px;
 }
 .profile-row { display: flex; align-items: center; gap: 14px; }
+.profile-row .avatar { margin-left: 16px; }
 .avatar {
   width: 64px; height: 64px; border-radius: 50%;
   background: #fff; border: 2.5px solid var(--ink);
