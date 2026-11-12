@@ -1165,7 +1165,10 @@ function showAuthScreen(mode = 'login') {
       await initAndRender();
     } catch (e) {
       msg.textContent = e.message;
-    } finally { btn.disabled = false; }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
   });
   container.querySelector('#authPwd').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') container.querySelector('#authSubmit').click();
