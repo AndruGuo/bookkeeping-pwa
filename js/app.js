@@ -1130,6 +1130,7 @@ async function saveAdd() {
 function showAuthScreen(mode = 'login') {
   const container = document.getElementById('pageContainer');
   document.body.classList.add('overscroll-yellow');
+  document.querySelector('.tab-bar').classList.add('hidden');
   document.getElementById('navTitle').textContent = '记账本';
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
@@ -1250,9 +1251,31 @@ function init() {
   document.getElementById('qaCustom').addEventListener('click', () => {
     document.getElementById('amountInput').focus();
   });
-  // 日期一键回到今天
-  document.getElementById('dateToday').addEventListener('click', () => {
-    document.getElementById('dateInput').value = dateKey(new Date());
+  // 明细页下拉刷新：拉过阈值即同步云端
+  const pc = document.getElementById('pageContainer');
+  let pullStartY = 0, pullArmed = false;
+  pc.addEventListener('touchstart', (e) => {
+    pullArmed = pc.scrollTop <= 0 && cloud.isAuthed();
+    pullStartY = e.touches[0].clientY;
+  }, { passive: true });
+  pc.addEventListener('touchmove', (e) => {
+    if (!pullArmed || pc.dataset.refreshing) return;
+    if (e.touches[0].clientY - pullStartY > 75) {
+      pc.dataset.refreshing = '1';
+      toast('正在同步…');
+      Promise.resolve().then(() => refresh()).then(() => toast('账本已更新')).catch(() => {})
+        .finally(() => { delete pc.dataset.refreshing; });
+    }
+  }, { passive: true });
+
+  // 日期快捷选择：今天/昨天/前天
+  document.getElementById('dateChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const d = new Date();
+    d.setDate(d.getDate() - Number(chip.dataset.day));
+    document.getElementById('dateInput').value = dateKey(d);
+    document.querySelectorAll('#dateChips .chip').forEach((c) => c.classList.toggle('active', c === chip));
   });
 
   registerSW();
@@ -1287,6 +1310,7 @@ async function initAndRender() {
     showAuthScreen();
     return;
   }
+  document.querySelector('.tab-bar').classList.remove('hidden');
   try {
     await refresh(); // 启动即从云端拉全量
   } catch (e) {
