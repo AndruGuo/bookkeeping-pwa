@@ -1174,6 +1174,8 @@ function showAuthScreen(mode = 'login') {
 function switchTab(tab) {
   if (!cloud.isAuthed()) { showAuthScreen(); return; }
   state.tab = tab;
+  // 橡皮筋回弹底色跟随页面头部：黄头页面露黄，白头页面露白
+  document.body.style.background = (tab === 'categories') ? '#fff' : 'var(--primary)';
   document.querySelectorAll('.tab-item').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
