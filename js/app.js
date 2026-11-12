@@ -1304,6 +1304,7 @@ function init() {
       pc.dataset.refreshing = '1';
       const loader = pullLoader();
       const isHome = state.tab === 'home';
+      if (loader) { loader.style.opacity = '1'; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
       const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
       job
         .then(() => {})
@@ -1343,10 +1344,14 @@ function init() {
 
   registerSW();
   setupOfflineBanner();
-  if (!cloud.isAuthed()) { showAuthScreen(); return; } // 首屏无 token 直接进登录页
+  // 先渲染登录页（首屏即见），再判断登录态：有效才跳记账页
+  showAuthScreen();
+  if (!cloud.isAuthed()) return;
   const _pc2 = document.getElementById('pageContainer');
   if (_pc2) _pc2.style.overscrollBehavior = '';
-  initAndRender();
+  Promise.resolve().then(() => refresh())
+    .then(() => { initAndRender(); })   // 登录态有效 → 进记账页
+    .catch(() => {});                    // 无效则留在登录页
 }
 
 // ---------- 离线横幅 ----------
