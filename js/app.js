@@ -969,7 +969,7 @@ function bindPageEvents() {
       navigator.serviceWorker.controller.postMessage('get-version');
       navigator.serviceWorker.addEventListener('message', (e) => {
         if (typeof e.data === 'string' && e.data.startsWith('bookkeep-')) {
-          verEl.textContent = '(' + e.data.replace('bookkeep-v', '') + ')';
+          verEl.textContent = '(' + e.data.replace('bookkeep-', '') + ')';
         }
       });
     }
