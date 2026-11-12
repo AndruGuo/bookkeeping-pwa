@@ -21,6 +21,7 @@
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
+html { background: var(--primary); }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
   background: var(--bg); color: var(--ink);
@@ -94,6 +95,7 @@ input { font-family: inherit; color: var(--ink); }
   bottom: calc(var(--tab-h) + var(--safe-bottom));
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
   padding: 12px 16px 24px;
   background: var(--bg);
   overflow-x: hidden;
