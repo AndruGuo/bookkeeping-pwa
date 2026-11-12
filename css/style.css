@@ -317,7 +317,7 @@ input { font-family: inherit; color: var(--ink); }
 }
 .form-row:first-of-type, .form-group .form-row:first-child { border-top: none; }
 .form-row label { color: var(--ink); flex-shrink: 0; }
-.auth-form .form-row label { width: 58px; }
+.auth-form .form-row label { width: 58px; text-align-last: justify; }
 .form-row input, .form-row select {
   border: none; outline: none; text-align: right; flex: 1;
   background: transparent; font-size: 16px; min-width: 0;
