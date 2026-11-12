@@ -38,6 +38,7 @@ async function backgroundSync() {
 
 // 写操作统一包装：成功后拉全量刷新 UI，失败只弹 toast，UI 状态不变
 async function cloudAction(fn, successMsg, btn) {
+  let ok = false;
   if (btn) {
     btn.disabled = true;
     if (!btn.dataset.oldText) btn.dataset.oldText = btn.textContent;
@@ -46,6 +47,7 @@ async function cloudAction(fn, successMsg, btn) {
   try {
     await fn();
     await refresh();
+    ok = true;
     if (successMsg) toast(successMsg);
     return true;
   } catch (e) {
@@ -53,7 +55,21 @@ async function cloudAction(fn, successMsg, btn) {
     toast(e.message || '操作失败，请重试', 4000);
     return false;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.oldText || btn.textContent; delete btn.dataset.oldText; }
+    if (btn) {
+      if (ok) {
+        // 大厂同款：成功后短暂显示对勾再恢复
+        btn.innerHTML = '<span class="ok-check">✓</span>已保存';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = btn.dataset.oldText || btn.textContent;
+          delete btn.dataset.oldText;
+        }, 700);
+      } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.oldText || btn.textContent;
+        delete btn.dataset.oldText;
+      }
+    }
   }
 }
 
