@@ -1120,6 +1120,7 @@ async function saveAdd() {
 // ---------- 登录 / 注册页 ----------
 function showAuthScreen(mode = 'login') {
   const container = document.getElementById('pageContainer');
+  document.body.classList.add('overscroll-yellow');
   document.getElementById('navTitle').textContent = '记账本';
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
@@ -1179,8 +1180,8 @@ function showAuthScreen(mode = 'login') {
 function switchTab(tab) {
   if (!cloud.isAuthed()) { showAuthScreen(); return; }
   state.tab = tab;
-  // 橡皮筋回弹底色跟随页面头部：黄头页面露黄，白头页面露白
-  document.body.style.background = (tab === 'categories') ? '#fff' : 'var(--primary)';
+  // 橡皮筋回弹底色：黄头页面启用顶部黄条，白头页面保持纯白
+  document.body.classList.toggle('overscroll-yellow', tab !== 'categories');
   document.querySelectorAll('.tab-item').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
