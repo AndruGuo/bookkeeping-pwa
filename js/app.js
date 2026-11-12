@@ -1287,16 +1287,15 @@ function init() {
     if (e.touches[0].clientY - pullStartY > 75) {
       pc.dataset.refreshing = '1';
       const loader = document.getElementById('pullLoader');
-      if (loader) loader.classList.remove('hidden');
-      Promise.resolve().then(() => refresh())
-        .then(() => { toast('账本已更新'); })
+      const isHome = state.tab === 'home';
+      if (loader) { loader.classList.add('on'); loader.classList.remove('hidden'); }
+      const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
+      job
+        .then(() => { toast(isHome ? '账本已更新' : '已刷新'); })
         .catch(() => {})
         .finally(() => {
           delete pc.dataset.refreshing;
-          if (loader) {
-            loader.querySelector('.pull-text').textContent = '已更新 ✓';
-            setTimeout(() => { loader.classList.add('hidden'); loader.querySelector('.pull-text').textContent = '正在同步…'; }, 600);
-          }
+          if (loader) { loader.classList.remove('on'); setTimeout(() => loader.classList.add('hidden'), 300); }
         });
     }
   }, { passive: true });
