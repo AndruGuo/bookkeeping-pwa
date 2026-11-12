@@ -361,7 +361,12 @@ input { font-family: inherit; color: var(--ink); }
   transition: color 0.15s ease, transform 0.1s ease;
 }
 .tab-item:active { transform: scale(0.94); }
-.tab-item.active { color: var(--ink); font-weight: 600; }
+.tab-item.active {
+  color: var(--ink); font-weight: 600;
+  background: var(--primary); border-radius: 14px;
+  margin: 0 10px; align-self: stretch;
+}
+.tab-item:not(.active) { background: transparent; }
 .tab-icon svg { width: 26px; height: 26px; display: block; }
 .tab-icon { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .tab-item.active .tab-icon { transform: translateY(-1px); }
