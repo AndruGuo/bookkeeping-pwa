@@ -1347,14 +1347,10 @@ function init() {
 
   registerSW();
   setupOfflineBanner();
-  // 先渲染登录页（首屏即见），再判断登录态：有效才跳记账页
-  showAuthScreen();
-  if (!cloud.isAuthed()) return;
+  if (!cloud.isAuthed()) { showAuthScreen(); return; } // 无登录态：首屏即登录页（head 内联脚本已隐藏主界面，无闪烁）
   const _pc2 = document.getElementById('pageContainer');
   if (_pc2) _pc2.style.overscrollBehavior = '';
-  Promise.resolve().then(() => refresh())
-    .then(() => { initAndRender(); })   // 登录态有效 → 进记账页
-    .catch(() => {});                    // 无效则留在登录页
+  initAndRender(); // 有登录态：直达记账页，不闪登录页
 }
 
 // ---------- 离线横幅 ----------
