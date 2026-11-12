@@ -1279,7 +1279,7 @@ function init() {
   const pc = document.getElementById('pageContainer');
   let pullStartY = 0, pullArmed = false;
   pc.addEventListener('touchstart', (e) => {
-    pullArmed = pc.scrollTop <= 0 && cloud.isAuthed();
+    pullArmed = pc.scrollTop <= 0 && cloud.isAuthed() && state.tab === 'home'; // 仅明细页支持下拉刷新
     pullStartY = e.touches[0].clientY;
   }, { passive: true });
   pc.addEventListener('touchmove', (e) => {
