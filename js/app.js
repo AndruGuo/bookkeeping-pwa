@@ -1170,7 +1170,7 @@ function showAuthScreen(mode = 'login') {
           <button class="seg ${mode === 'login' ? 'active' : ''}" data-amode="login">登录</button>
           <button class="seg ${mode === 'register' ? 'active' : ''}" data-amode="register">注册</button>
         </div>
-        <div class="form-group" style="margin-bottom:0">
+        <div class="form-group auth-form" style="margin-bottom:0">
           <div class="form-row plain" style="border-radius:12px 12px 0 0"><label>用户名</label><input id="authUser" type="text" placeholder="3-20 位字母、数字或下划线" maxlength="20" autocomplete="username"></div>
           <div class="form-row plain" style="${mode === 'register' ? '' : 'border-radius:0 0 12px 12px;border-bottom:none'}"><label>密码</label><input id="authPwd" type="password" placeholder="${mode === 'register' ? '至少 8 位' : '密码'}" autocomplete="current-password"></div>
           ${mode === 'register' ? '<div class="form-row plain" style="border-radius:0 0 12px 12px;border-bottom:none"><label>邀请码</label><input id="authInvite" type="text" placeholder="请输入邀请码"></div>' : ''}
