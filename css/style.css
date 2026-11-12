@@ -335,17 +335,24 @@ input { font-family: inherit; color: var(--ink); }
 /* 下拉刷新指示器 */
 /* 鲨鱼式下拉提示行（纯文字） */
 .pull-loader {
-  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 10px);
+  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 12px);
   left: 0; right: 0;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-size: 15px; font-weight: 600; color: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.45);
   z-index: 60; pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
-.pull-loader.hidden { opacity: 0; }
-.pull-loader .spinner { width: 16px; height: 16px; margin: 0; border-width: 2.5px; border-color: rgba(0,0,0,0.2); border-top-color: rgba(0,0,0,0.55); }
-.pull-loader .spinner { display: none; }
-.pull-loader.on .spinner { display: inline-block; }
+.pull-loader.hidden { opacity: 0 !important; }
+.pull-loader .spinner {
+  width: 24px; height: 24px; margin: 0;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top-color: rgba(0,0,0,0.55);
+  border-radius: 50%;
+  will-change: transform;
+}
+.pull-loader .pull-text { display: none; }
+.pull-loader.on .pull-text { display: inline; }
+.pull-loader.on .spinner { animation: spin 0.8s linear infinite; transform: none !important; }
 /* 日期快捷 chips */
 .date-chips { display: flex; gap: 8px; }
 .date-chips .chip {

@@ -1289,11 +1289,14 @@ function init() {
     if (!pullArmed || pc.dataset.refreshing) return;
     const dist = e.touches[0].clientY - pullStartY;
     const ld = pullLoader();
-    if (dist > 20 && ld) {
+    if (dist > 20 && ld && !pc.dataset.refreshing) {
       ld.classList.remove('hidden');
-      ld.querySelector('.pull-text').textContent = dist > 75 ? '松开立即刷新' : '下拉可以刷新';
-      ld.style.opacity = String(Math.min(1, (dist - 20) / 55));
-    } else if (ld) {
+      ld.classList.remove('on');
+      const prog = Math.min(1, (dist - 20) / 55);
+      const sp = ld.querySelector('.spinner');
+      sp.style.transform = 'rotate(' + (dist * 2.2).toFixed(0) + 'deg) scale(' + (0.5 + 0.5 * prog).toFixed(2) + ')';
+      ld.style.opacity = String(prog);
+    } else if (ld && !pc.dataset.refreshing) {
       ld.classList.add('hidden');
     }
     if (dist > 0 && dist <= 110) {
@@ -1304,7 +1307,7 @@ function init() {
       pc.dataset.refreshing = '1';
       const loader = pullLoader();
       const isHome = state.tab === 'home';
-      if (loader) { loader.style.opacity = '1'; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
+      if (loader) { loader.style.opacity = '1'; const sp = loader.querySelector('.spinner'); if (sp) sp.style.transform = ''; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
       const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
       job
         .then(() => {})
@@ -1313,7 +1316,7 @@ function init() {
           delete pc.dataset.refreshing;
           pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
           pc.style.transform = '';
-          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; setTimeout(() => loader.classList.add('hidden'), 150); }
+          if (loader) { loader.classList.remove('on'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 250); }
         });
     }
   }, { passive: true });
