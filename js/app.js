@@ -700,6 +700,7 @@ function showAddRecurring() {
       startDow: start.getDay(),
       startDay: start.getDate(),
       startYmmd: startVal.slice(5), // MM-DD
+      startYmd: startVal, // 完整起始日 YYYY-MM-DD
       lastRun: ''
     });
     saveRecurring(list);
@@ -720,6 +721,7 @@ async function checkRecurring() {
   let created = 0;
   for (const r of list) {
     if (r.lastRun === tk) continue;
+    if (r.startYmd && tk < r.startYmd) continue; // 起始日未到不触发
     let due = false;
     if (r.period === 'weekly') due = today.getDay() === r.startDow;
     else if (r.period === 'monthly') due = monthStr !== (r.lastRun || '').slice(0, 7) && today.getDate() >= Math.min(r.startDay, new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate());
