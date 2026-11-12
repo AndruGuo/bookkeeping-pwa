@@ -1,5 +1,5 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v45';
+const CACHE_NAME = 'bookkeep-v46';
 const ASSETS = [
   './',
   './index.html',
@@ -22,6 +22,10 @@ self.addEventListener('install', (e) => {
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
       .then(() => self.skipWaiting())
   );
+});
+
+self.addEventListener('message', (e) => {
+  if (e.data === 'get-version') e.source.postMessage(CACHE_NAME, { transfer: [] });
 });
 
 self.addEventListener('activate', (e) => {

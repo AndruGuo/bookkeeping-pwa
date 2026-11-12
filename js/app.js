@@ -792,7 +792,7 @@ function renderSettings() {
     <div class="list-card">
       <button class="list-row" id="logoutBtn"><span class="row-icon">${ic('<path d="M15 12H4m0 0l3.5-3.5M4 12l3.5 3.5"/><path d="M12 4h5.5A1.5 1.5 0 0 1 19 5.5v13a1.5 1.5 0 0 1-1.5 1.5H12"/>')}</span><span class="row-label">退出登录</span><span class="arrow">›</span></button>
     </div>
-    <div class="status-text">记账本 PWA v38 · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在云端，可随时导出备份。</div>
+    <div class="status-text">记账本 PWA <span id="swVersion"></span> · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在云端，可随时导出备份。</div>
   </div>`;
 }
 
@@ -941,6 +941,15 @@ function bindPageEvents() {
         toast('清空失败：' + e.message, 4000);
       }
     });
+    const verEl = document.getElementById('swVersion');
+    if (verEl && navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('get-version');
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (typeof e.data === 'string' && e.data.startsWith('bookkeep-')) {
+          verEl.textContent = e.data.replace('bookkeep-', '(').replace(/-.*/, '') ? '(' + e.data.replace('bookkeep-v', 'v') + ')' : '';
+        }
+      });
+    }
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       if (!(await confirmDialog('确定退出登录？'))) return;
       await cloud.logout();
