@@ -87,9 +87,9 @@ input { font-family: inherit; color: var(--ink); }
 }
 .month-switch {
   display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 19px; font-weight: 700;
+  font-size: 21px; font-weight: 700;
 }
-.month-switch .nav-btn { width: 42px; height: 42px; font-size: 22px; }
+.month-switch .nav-btn { width: 46px; height: 46px; font-size: 24px; }
 .head-summary { display: flex; margin-top: 4px; }
 .head-summary > div { flex: 1; }
 .head-summary .hl { font-size: 13px; color: var(--ink2); }
