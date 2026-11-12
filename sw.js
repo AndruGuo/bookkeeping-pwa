@@ -1,5 +1,5 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v33';
+const CACHE_NAME = 'bookkeep-v34';
 const ASSETS = [
   './',
   './index.html',
@@ -49,14 +49,17 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  // 静态资源：缓存优先
+  // 静态资源：stale-while-revalidate（先回缓存秒开，同时后台更新，下次打开必为新版）
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request).then((res) => {
-      if (res.ok && url.origin === location.origin) {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
-      }
-      return res;
-    }))
+    caches.match(e.request).then((cached) => {
+      const net = fetch(e.request).then((res) => {
+        if (res.ok && url.origin === location.origin) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => cached);
+      return cached || net;
+    })
   );
 });
