@@ -1123,10 +1123,10 @@ function showAuthScreen(mode = 'login') {
   document.getElementById('navTitle').textContent = '记账本';
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
+  container.style.paddingTop = '0';
   container.innerHTML = `
-    <div class="page" style="max-width:420px;margin:0 auto">
-      <div class="profile-head" style="text-align:center">
-        <img class="avatar avatar-lg" src="assets/avatar.png" alt="记账本头像" style="border-width:3px">
+    <div style="background:var(--primary);margin:0 -16px;padding:12px 16px 18px;text-align:center">
+      <img class="avatar avatar-lg" src="assets/avatar.png" alt="记账本头像" style="border-width:3px">
         <div style="font-size:22px;font-weight:700;margin-top:4px">记账本</div>
         <div style="font-size:13px;color:#666;margin-top:4px">简单清晰地记好每一笔</div>
       </div>
