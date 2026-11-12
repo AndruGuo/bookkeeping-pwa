@@ -1152,6 +1152,8 @@ async function saveAdd() {
 
 // ---------- 登录 / 注册页 ----------
 function showAuthScreen(mode = 'login') {
+  const _pc = document.getElementById('pageContainer');
+  if (_pc) { _pc.style.overscrollBehavior = 'none'; _pc.style.overflowY = 'auto'; }
   const container = document.getElementById('pageContainer');
   document.body.classList.add('overscroll-yellow');
   document.querySelector('.tab-bar').classList.add('hidden');
@@ -1310,7 +1312,7 @@ function init() {
           delete pc.dataset.refreshing;
           pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
           pc.style.transform = '';
-          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; loader.querySelector('.pull-text').textContent = '已更新'; setTimeout(() => loader.classList.add('hidden'), 700); }
+          if (loader) { loader.classList.remove('on'); loader.style.opacity = ''; setTimeout(() => loader.classList.add('hidden'), 150); }
         });
     }
   }, { passive: true });
@@ -1342,6 +1344,8 @@ function init() {
   registerSW();
   setupOfflineBanner();
   if (!cloud.isAuthed()) { showAuthScreen(); return; } // 首屏无 token 直接进登录页
+  const _pc2 = document.getElementById('pageContainer');
+  if (_pc2) _pc2.style.overscrollBehavior = '';
   initAndRender();
 }
 
