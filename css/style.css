@@ -350,7 +350,6 @@ input { font-family: inherit; color: var(--ink); }
 .pull-loader.on .spinner { animation-play-state: running; }
 .pull-loader { transition: opacity 0.25s ease; }
 .pull-loader.hidden { opacity: 0; }
-.pull-loader.hidden { display: none; }
 /* 日期快捷 chips */
 .date-chips { display: flex; gap: 8px; }
 .date-chips .chip {
