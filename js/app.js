@@ -37,7 +37,12 @@ async function backgroundSync() {
 }
 
 // 写操作统一包装：成功后拉全量刷新 UI，失败只弹 toast，UI 状态不变
-async function cloudAction(fn, successMsg) {
+async function cloudAction(fn, successMsg, btn) {
+  if (btn) {
+    btn.disabled = true;
+    if (!btn.dataset.oldText) btn.dataset.oldText = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span>' + (btn.dataset.busyText || '处理中…');
+  }
   try {
     await fn();
     await refresh();
@@ -47,6 +52,8 @@ async function cloudAction(fn, successMsg) {
     if (/重新登录/.test(e.message || '')) { showAuthScreen(); return false; }
     toast(e.message || '操作失败，请重试', 4000);
     return false;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.oldText || btn.textContent; delete btn.dataset.oldText; }
   }
 }
 
@@ -1059,7 +1066,7 @@ async function showAddCategory() {
       return toast('同名分类已存在');
     }
     const maxSort = Math.max(0, ...state.categories.filter((c) => c.type === type).map((c) => c.sortOrder));
-    await cloudAction(() => cloud.addCategory({ name, icon, type, sortOrder: maxSort + 1 }), '已添加');
+    await cloudAction(() => cloud.addCategory({ name, icon, type, sortOrder: maxSort + 1 }), '已添加', mask.querySelector('#catSave'));
     mask.remove();
   });
 }
@@ -1114,13 +1121,14 @@ async function saveAdd() {
   if (addCategoryId === null) return toast('请选择分类');
   const dateStr = document.getElementById('dateInput').value;
   const date = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : Date.now();
+  const saveBtn = document.getElementById('addSave');
   const ok = await cloudAction(() => cloud.addTransaction({
     type: addType,
     amountInCents: amount,
     categoryId: addCategoryId,
     note: document.getElementById('noteInput').value.trim(),
     date
-  }), '已记账');
+  }), '已记账', saveBtn);
   if (!ok) return; // 失败：保留输入，不关闭弹层
   bumpCatFreq(addCategoryId);
   document.getElementById('addSheet').classList.add('hidden');
