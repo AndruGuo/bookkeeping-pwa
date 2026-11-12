@@ -385,7 +385,7 @@ input { font-family: inherit; color: var(--ink); }
   margin: -12px -16px 0;
   padding: calc(16px + var(--safe-top) / 2) 16px 18px;
 }
-.profile-row { display: flex; align-items: center; gap: 14px; }
+.profile-row { display: flex; align-items: center; gap: 14px; padding-left: 14px; }
 .avatar {
   width: 76px; height: 76px; border-radius: 50%;
   background: #fff; border: 2.5px solid var(--ink);
