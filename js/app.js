@@ -1317,9 +1317,12 @@ function init() {
         .catch(() => {})
         .finally(() => {
           delete pc.dataset.refreshing;
-          pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
-          pc.style.transform = '';
-          if (loader) { loader.classList.remove('on'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 200); }
+          requestAnimationFrame(() => {
+            pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+            pc.style.transform = '';
+            setTimeout(() => { pc.style.transition = ''; pc.style.transform = ''; }, 400);
+          });
+          if (loader) { loader.classList.remove('on', 'with-text'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 200); }
         });
     }
   }, { passive: true });
