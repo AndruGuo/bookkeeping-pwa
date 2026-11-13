@@ -341,7 +341,7 @@ body.auth-mode .tab-bar { display: none !important; }
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.45);
   z-index: 60; pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 .pull-loader.hidden { opacity: 0 !important; }
 .pull-loader .spinner {

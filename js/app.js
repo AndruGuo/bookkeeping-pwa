@@ -1322,7 +1322,11 @@ function init() {
             pc.style.transform = '';
             setTimeout(() => { pc.style.transition = ''; pc.style.transform = ''; }, 400);
           });
-          if (loader) { loader.classList.remove('on', 'with-text'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 200); }
+          if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transform = 'translateY(-8px)';
+            setTimeout(() => { loader.classList.add('hidden'); loader.classList.remove('on', 'with-text'); loader.style.transform = ''; }, 320);
+          }
         });
     }
   }, { passive: true });
@@ -1331,7 +1335,7 @@ function init() {
       pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
       pc.style.transform = '';
       const ld = pullLoader();
-      if (ld) { ld.style.opacity = ''; setTimeout(() => ld.classList.add('hidden'), 150); }
+      if (ld) { ld.style.opacity = '0'; ld.style.transform = 'translateY(-8px)'; setTimeout(() => { ld.classList.add('hidden'); ld.classList.remove('with-text'); ld.style.transform = ''; }, 320); }
     }
   }, { passive: true });
   pc.addEventListener('touchcancel', () => {
