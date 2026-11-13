@@ -1383,6 +1383,8 @@ async function initAndRender() {
   }
   document.querySelector('.tab-bar').classList.remove('hidden');
   document.body.classList.remove('auth-mode');
+  const _bh = document.getElementById('bootHideTab');
+  if (_bh) _bh.remove(); // 移除首屏引导隐藏样式，恢复底栏
   try {
     await refresh(); // 启动即从云端拉全量
   } catch (e) {
