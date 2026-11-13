@@ -110,9 +110,9 @@ function monthlyBudget() {
 // ---------- 顶部标题 ----------
 function updateNav() {
   const titleEl = document.getElementById('navTitle');
-  const showMonth = state.tab === 'stats';
+  const showMonth = state.tab === 'stats' || state.tab === 'home';
   const titles = { home: '记账本', stats: '统计', categories: '分类管理', settings: '我的' };
-  titleEl.textContent = state.tab === 'stats' ? monthTitle(state.month) : titles[state.tab];
+  titleEl.textContent = titles[state.tab] || '';
   document.getElementById('monthPrev').style.visibility = showMonth ? 'visible' : 'hidden';
   document.getElementById('monthNext').style.visibility = showMonth ? 'visible' : 'hidden';
   const av = document.getElementById('navAvatarWrap');
@@ -145,7 +145,7 @@ function summaryInlineHTML() {
     </div>`;
 }
 
-function headSummaryCardHTML(withBudget, withSwitch = true) {
+function headSummaryCardHTML(withBudget, withSwitch = true, switchSuffix = 'Home') {
   const s = monthSummary();
   const budget = monthlyBudget();
   let budgetHTML = '';
@@ -157,7 +157,7 @@ function headSummaryCardHTML(withBudget, withSwitch = true) {
       </div>
       <div style="font-size:12px;color:#444;margin-top:4px">月预算 ¥${budget.toLocaleString('en-US')}，已用 ${pct}%</div>`;
   }
-  return `<div class="home-head">${withSwitch ? monthSwitchHTML(true) : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
+  return `<div class="home-head">${withSwitch ? monthSwitchHTML(switchSuffix !== 'Home') : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
 }
 
 // ---------- 空态 ----------
@@ -547,7 +547,7 @@ function renderStats() {
   const sixEmpty = sixMonths.every((m) => m.expense === 0 && m.income === 0);
 
   return `<div class="page">
-    ${headSummaryCardHTML(false, false)}
+    ${headSummaryCardHTML(false, true, 'Stats')}
     <div class="card">
       <h3>近 30 天收支趋势</h3>
       ${trendEmpty ? emptyArt('📉', '暂无收支数据', '记一笔后即可看到趋势曲线') : '<div class="chart-box"><canvas id="trendChart"></canvas></div>'}
@@ -942,6 +942,11 @@ function bindPageEvents() {
     if (mn) mn.addEventListener('click', () => {
       state.month = shiftMonth(state.month, 1); render();
     });
+    // 统计页头部月份切换
+    const ms = document.getElementById('monthPrevStats');
+    if (ms) ms.addEventListener('click', () => { state.month = shiftMonth(state.month, -1); render(); });
+    const mns = document.getElementById('monthNextStats');
+    if (mns) mns.addEventListener('click', () => { state.month = shiftMonth(state.month, 1); render(); });
   }
 
   // 设置页
