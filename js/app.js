@@ -109,9 +109,9 @@ function monthlyBudget() {
 
 // ---------- 顶部标题 ----------
 function updateNav() {
+  const titles = { home: '记账本', stats: '统计', categories: '分类管理', settings: '我的' }; // 顶栏不再显示大标题
   const titleEl = document.getElementById('navTitle');
-  const titles = { home: '记账本', stats: '统计', categories: '分类管理', settings: '我的' };
-  titleEl.textContent = titles[state.tab] || '';
+  if (titleEl) titleEl.textContent = titles[state.tab] || '';
   document.getElementById('monthPrev').style.visibility = 'hidden'; // 月份切换只在黄色头部
   document.getElementById('monthNext').style.visibility = 'hidden';
   const av = document.getElementById('navAvatarWrap');
@@ -1157,7 +1157,7 @@ function showAuthScreen(mode = 'login') {
   document.body.classList.add('overscroll-yellow');
   document.querySelector('.tab-bar').classList.add('hidden');
   document.body.classList.add('auth-mode');
-  document.getElementById('navTitle').textContent = '记账本';
+  const _nt = document.getElementById('navTitle'); if (_nt) _nt.textContent = '记账本';
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
   container.style.paddingTop = '0';
