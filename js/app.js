@@ -941,11 +941,6 @@ function bindPageEvents() {
     if (mn) mn.addEventListener('click', () => {
       state.month = shiftMonth(state.month, 1); render();
     });
-    // 统计页头部月份切换
-    const ms = document.getElementById('monthPrevStats');
-    if (ms) ms.addEventListener('click', () => { state.month = shiftMonth(state.month, -1); render(); });
-    const mns = document.getElementById('monthNextStats');
-    if (mns) mns.addEventListener('click', () => { state.month = shiftMonth(state.month, 1); render(); });
   }
 
   // 设置页
@@ -1242,6 +1237,13 @@ function init() {
   document.getElementById('monthNext').addEventListener('click', () => {
     state.month = shiftMonth(state.month, 1);
     render();
+  });
+  // 头部月份切换按钮（Home/Stats 后缀，事件委托，渲染后自动生效）
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('#monthPrevHome, #monthPrevStats');
+    if (t) { state.month = shiftMonth(state.month, -1); render(); return; }
+    const n = e.target.closest('#monthNextHome, #monthNextStats');
+    if (n) { state.month = shiftMonth(state.month, 1); render(); }
   });
   // 左右滑动切月（首页/统计）
   let touchX = null, touchY = null;
