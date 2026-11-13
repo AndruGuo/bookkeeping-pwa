@@ -103,7 +103,7 @@ body.auth-mode .tab-bar { display: none !important; }
 
 /* ---------- 页面容器 ---------- */
 .page-container {
-  position: absolute; top: calc(var(--nav-h) + var(--safe-top));
+  position: absolute; top: var(--safe-top);
   bottom: calc(var(--tab-h) + var(--safe-bottom));
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -340,7 +340,7 @@ body.auth-mode .tab-bar { display: none !important; }
 /* 下拉刷新指示器 */
 /* 鲨鱼式下拉提示行（纯文字） */
 .pull-loader {
-  position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 12px);
+  position: fixed; top: calc(var(--safe-top) + 12px);
   left: 0; right: 0;
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.45);
