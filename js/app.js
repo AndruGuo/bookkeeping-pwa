@@ -1295,7 +1295,7 @@ function init() {
       ld.classList.remove('on');
       const prog = Math.min(1, (dist - 20) / 55);
       const sp = ld.querySelector('.spinner');
-      sp.style.transform = 'rotate(' + (dist * 2.2).toFixed(0) + 'deg) scale(' + (0.5 + 0.5 * prog).toFixed(2) + ')';
+      sp.style.transform = 'scale(' + (0.5 + 0.5 * prog).toFixed(2) + ')'; // 松手前不旋转，只渐显
       ld.style.opacity = String(prog);
       ld.querySelector('.pull-text').textContent = '松手更新账本';
       ld.classList.add('with-text');
@@ -1310,6 +1310,8 @@ function init() {
   }, { passive: true });
   const startRefresh = () => {
     pc.dataset.refreshing = '1';
+    pc.style.transition = 'transform 0.25s ease';
+    pc.style.transform = 'translateY(42px)'; // 更新期间悬停在拉开位置
     const loader = pullLoader();
     const isHome = state.tab === 'home';
     if (loader) { loader.style.opacity = '1'; const sp = loader.querySelector('.spinner'); if (sp) sp.style.transform = ''; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
