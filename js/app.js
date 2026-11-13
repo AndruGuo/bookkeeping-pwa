@@ -1219,7 +1219,7 @@ function switchTab(tab) {
   if (!cloud.isAuthed()) { showAuthScreen(); return; }
   state.tab = tab;
   // 橡皮筋回弹底色：黄头页面启用顶部黄条，白头页面保持纯白
-  document.body.classList.toggle('overscroll-yellow', tab !== 'categories');
+  document.body.classList.add('overscroll-yellow'); // 所有页面顶部统一涂黄
   document.querySelectorAll('.tab-item').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
