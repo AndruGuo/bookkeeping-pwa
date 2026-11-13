@@ -1280,7 +1280,7 @@ function init() {
   });
   // 明细页下拉刷新：拉过阈值即同步云端
   const pc = document.getElementById('pageContainer');
-  let pullStartY = 0, pullArmed = false;
+  let pullStartY = 0, pullArmed = false, pullPassed = false;
   pc.addEventListener('touchstart', (e) => {
     pullArmed = pc.scrollTop <= 0 && cloud.isAuthed() && state.tab === 'home'; // 仅明细页支持下拉刷新
     pullStartY = e.touches[0].clientY;
@@ -1306,37 +1306,40 @@ function init() {
       pc.style.transition = 'none';
       pc.style.transform = 'translateY(' + (dist * 0.55).toFixed(1) + 'px)'; // 页面跟手，带阻尼
     }
-    if (dist > 75) {
-      pc.dataset.refreshing = '1';
-      const loader = pullLoader();
-      const isHome = state.tab === 'home';
-      if (loader) { loader.style.opacity = '1'; const sp = loader.querySelector('.spinner'); if (sp) sp.style.transform = ''; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
-      const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
-      job
-        .then(() => {})
-        .catch(() => {})
-        .finally(() => {
-          delete pc.dataset.refreshing;
-          requestAnimationFrame(() => {
-            pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
-            pc.style.transform = '';
-            setTimeout(() => { pc.style.transition = ''; pc.style.transform = ''; }, 400);
-          });
-          if (loader) {
-            loader.style.opacity = '0';
-            loader.style.transform = 'translateY(-8px)';
-            setTimeout(() => { loader.classList.add('hidden'); loader.classList.remove('on', 'with-text'); loader.style.transform = ''; }, 320);
-          }
-        });
-    }
+    pullPassed = dist > 75;
   }, { passive: true });
+  const startRefresh = () => {
+    pc.dataset.refreshing = '1';
+    const loader = pullLoader();
+    const isHome = state.tab === 'home';
+    if (loader) { loader.style.opacity = '1'; const sp = loader.querySelector('.spinner'); if (sp) sp.style.transform = ''; loader.classList.add('on'); loader.querySelector('.pull-text').textContent = isHome ? '正在更新中' : '正在刷新…'; }
+    const job = isHome ? Promise.resolve().then(() => refresh()) : new Promise((res) => setTimeout(() => { render(); res(); }, 350));
+    job
+      .then(() => {})
+      .catch(() => {})
+      .finally(() => {
+        delete pc.dataset.refreshing;
+        requestAnimationFrame(() => {
+          pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+          pc.style.transform = '';
+          setTimeout(() => { pc.style.transition = ''; pc.style.transform = ''; }, 400);
+        });
+        if (loader) {
+          loader.style.opacity = '0';
+          loader.style.transform = 'translateY(-8px)';
+          setTimeout(() => { loader.classList.add('hidden'); loader.classList.remove('on', 'with-text'); loader.style.transform = ''; }, 320);
+        }
+      });
+  };
   pc.addEventListener('touchend', () => {
     if (!pc.dataset.refreshing && pc.style.transform) {
       pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
       pc.style.transform = '';
+      if (pullPassed) { startRefresh(); pullPassed = false; return; } // 过阈值松手才触发
       const ld = pullLoader();
       if (ld) { ld.style.opacity = '0'; ld.style.transform = 'translateY(-8px)'; setTimeout(() => { ld.classList.add('hidden'); ld.classList.remove('with-text'); ld.style.transform = ''; }, 320); }
     }
+    pullPassed = false;
   }, { passive: true });
   pc.addEventListener('touchcancel', () => {
     pc.style.transition = 'transform 0.3s ease';
