@@ -1399,6 +1399,10 @@ async function initAndRender() {
   document.body.classList.remove('auth-mode');
   const _bh = document.getElementById('bootHideTab');
   if (_bh) _bh.remove(); // 移除首屏引导隐藏样式，恢复底栏
+  const _bha = document.getElementById('bootHideAuth');
+  if (_bha) _bha.remove();
+  const _pcv = document.getElementById('pageContainer');
+  if (_pcv) _pcv.style.visibility = 'visible';
   try {
     await refresh(); // 启动即从云端拉全量
   } catch (e) {
