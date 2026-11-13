@@ -110,11 +110,10 @@ function monthlyBudget() {
 // ---------- 顶部标题 ----------
 function updateNav() {
   const titleEl = document.getElementById('navTitle');
-  const showMonth = state.tab === 'stats' || state.tab === 'home';
   const titles = { home: '记账本', stats: '统计', categories: '分类管理', settings: '我的' };
   titleEl.textContent = titles[state.tab] || '';
-  document.getElementById('monthPrev').style.visibility = showMonth ? 'visible' : 'hidden';
-  document.getElementById('monthNext').style.visibility = showMonth ? 'visible' : 'hidden';
+  document.getElementById('monthPrev').style.visibility = 'hidden'; // 月份切换只在黄色头部
+  document.getElementById('monthNext').style.visibility = 'hidden';
   const av = document.getElementById('navAvatarWrap');
   if (av) av.style.visibility = (state.tab === 'home' || state.tab === 'settings') ? 'visible' : 'hidden';
 }
