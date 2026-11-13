@@ -1342,7 +1342,7 @@ function init() {
     pc.style.transition = 'transform 0.3s ease';
     pc.style.transform = '';
     const ld = pullLoader();
-    if (ld) setTimeout(() => ld.classList.add('hidden'), 150);
+    if (ld) { ld.style.opacity = '0'; setTimeout(() => { ld.classList.add('hidden'); ld.classList.remove('with-text'); ld.style.opacity = ''; }, 320); }
   }, { passive: true });
 
   // 日期快捷选择：今天/昨天/前天
