@@ -353,7 +353,7 @@ body.auth-mode .tab-bar { display: none !important; }
 }
 .pull-loader .pull-text { display: none; }
 .pull-loader.with-text .pull-text, .pull-loader.on .pull-text { display: inline; }
-.pull-loader.on .spinner { animation: spin 0.8s linear infinite; transform: none !important; }
+.pull-loader.on .spinner { animation: spin 0.8s linear infinite; }
 .pull-loader .ok-ic {
   display: none; width: 24px; height: 24px; border-radius: 50%;
   background: var(--primary); color: var(--ink);
