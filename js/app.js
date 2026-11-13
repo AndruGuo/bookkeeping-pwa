@@ -610,6 +610,7 @@ function renderStats() {
 // ---------- 分类管理 ----------
 function renderCategories() {
   const list = state.categories;
+  const head = `<div class="home-head" style="padding-top:calc(var(--safe-top) + 8px)"><div style="font-size:21px;font-weight:700">分类管理</div></div>`;
   const rows = list.map((c) => {
     return `
       <div class="tx-item">
@@ -624,6 +625,7 @@ function renderCategories() {
       </div>`;
   }).join('');
   return `<div class="page">
+    ${head}
     <button class="btn-block primary" id="addCatBtn" style="margin-top:14px">＋ 新建分类</button>
     <div class="card" style="padding:0">${rows || '<div class="empty">暂无分类</div>'}</div>
   </div>`;
@@ -1162,7 +1164,7 @@ function showAuthScreen(mode = 'login') {
   document.getElementById('monthNext').style.visibility = 'hidden';
   container.style.paddingTop = '0';
   container.innerHTML = `
-    <div style="background:var(--primary);margin:0 -16px;padding:12px 16px 18px;text-align:center">
+    <div style="background:var(--primary);margin:0 -16px;padding:calc(var(--safe-top) + 12px) 16px 18px;text-align:center">
       <img class="avatar avatar-lg" src="assets/avatar.png" alt="记账本头像" style="border-width:3px">
         <div style="font-size:22px;font-weight:700;margin-top:4px">记账本</div>
         <div style="font-size:13px;color:#666;margin-top:4px">简单清晰地记好每一笔</div>
