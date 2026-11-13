@@ -6,6 +6,13 @@
     document.write('<style id="bootHideTab">.tab-bar,#offlineBanner{display:none!important}</style>');
   } else {
     document.write('<style id="bootHideAuth">.page-container{visibility:hidden}</style>');
+    // 兜底：3 秒后无论 JS 是否就绪都显示内容，避免慢网白屏
+    setTimeout(function(){
+      var s = document.getElementById('bootHideAuth');
+      if (s) s.remove();
+      var pc = document.getElementById('pageContainer');
+      if (pc) pc.style.visibility = 'visible';
+    }, 3000);
   }
 }catch(e){}</script>
 <meta charset="UTF-8">
@@ -20,7 +27,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
 <title>记账本</title>
-<link rel="stylesheet" href="css/style.css?v=94">
+<link rel="stylesheet" href="css/style.css?v=95">
 </head>
 <body>
 <div id="app">
@@ -106,6 +113,6 @@
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=94"></script>
+<script type="module" src="js/app.js?v=95"></script>
 </body>
 </html>
