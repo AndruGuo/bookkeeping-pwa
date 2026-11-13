@@ -1299,9 +1299,9 @@ function init() {
     } else if (ld && !pc.dataset.refreshing) {
       ld.classList.add('hidden');
     }
-    if (dist > 0 && dist <= 110) {
+    if (dist > 0 && dist <= 180) {
       pc.style.transition = 'none';
-      pc.style.transform = 'translateY(' + (dist * 0.45).toFixed(1) + 'px)'; // 页面跟手，带阻尼
+      pc.style.transform = 'translateY(' + (dist * 0.55).toFixed(1) + 'px)'; // 页面跟手，带阻尼
     }
     if (dist > 75) {
       pc.dataset.refreshing = '1';
