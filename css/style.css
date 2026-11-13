@@ -352,7 +352,7 @@ body.auth-mode .tab-bar { display: none !important; }
   will-change: transform;
 }
 .pull-loader .pull-text { display: none; }
-.pull-loader.on .pull-text { display: inline; }
+.pull-loader.with-text .pull-text, .pull-loader.on .pull-text { display: inline; }
 .pull-loader.on .spinner { animation: spin 0.8s linear infinite; transform: none !important; }
 .pull-loader .ok-ic {
   display: none; width: 24px; height: 24px; border-radius: 50%;

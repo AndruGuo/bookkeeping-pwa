@@ -1297,6 +1297,8 @@ function init() {
       const sp = ld.querySelector('.spinner');
       sp.style.transform = 'rotate(' + (dist * 2.2).toFixed(0) + 'deg) scale(' + (0.5 + 0.5 * prog).toFixed(2) + ')';
       ld.style.opacity = String(prog);
+      ld.querySelector('.pull-text').textContent = '松手更新账本';
+      ld.classList.add('with-text');
     } else if (ld && !pc.dataset.refreshing) {
       ld.classList.add('hidden');
     }
