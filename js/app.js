@@ -1157,6 +1157,7 @@ function showAuthScreen(mode = 'login') {
   const container = document.getElementById('pageContainer');
   document.body.classList.add('overscroll-yellow');
   document.querySelector('.tab-bar').classList.add('hidden');
+  document.body.classList.add('auth-mode');
   document.getElementById('navTitle').textContent = '记账本';
   document.getElementById('monthPrev').style.visibility = 'hidden';
   document.getElementById('monthNext').style.visibility = 'hidden';
@@ -1316,11 +1317,7 @@ function init() {
           delete pc.dataset.refreshing;
           pc.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
           pc.style.transform = '';
-          if (loader) {
-            loader.classList.remove('on'); loader.classList.add('done');
-            loader.querySelector('.pull-text').textContent = '更新完成';
-            setTimeout(() => { loader.classList.remove('done'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 200); }, 500);
-          }
+          if (loader) { loader.classList.remove('on'); loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 200); }
         });
     }
   }, { passive: true });
@@ -1385,6 +1382,7 @@ async function initAndRender() {
     return;
   }
   document.querySelector('.tab-bar').classList.remove('hidden');
+  document.body.classList.remove('auth-mode');
   try {
     await refresh(); // 启动即从云端拉全量
   } catch (e) {

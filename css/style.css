@@ -39,6 +39,7 @@ body {
 button { font-family: inherit; border: none; background: none; color: inherit; cursor: pointer; }
 input { font-family: inherit; color: var(--ink); }
 .hidden { display: none !important; }
+body.auth-mode .tab-bar { display: none !important; }
 .offline-banner {
   background: var(--ink); color: #fff; text-align: center;
   font-size: 13px; font-weight: 600; padding: calc(8px + var(--safe-top)) 12px 8px;
