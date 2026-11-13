@@ -119,8 +119,8 @@ function updateNav() {
 }
 
 // ---------- 黄色头部（月份切换 + 收入/支出汇总） ----------
-function monthSwitchHTML(home) {
-  const p = home ? 'Home' : '';
+function monthSwitchHTML(sfx) {
+  const p = sfx || '';
   return `
     <div class="month-switch">
       <button class="nav-btn" id="monthPrev${p}" aria-label="上一月">‹</button>
@@ -156,7 +156,7 @@ function headSummaryCardHTML(withBudget, withSwitch = true, switchSuffix = 'Home
       </div>
       <div style="font-size:12px;color:#444;margin-top:4px">月预算 ¥${budget.toLocaleString('en-US')}，已用 ${pct}%</div>`;
   }
-  return `<div class="home-head">${withSwitch ? monthSwitchHTML(switchSuffix !== 'Home') : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
+  return `<div class="home-head">${withSwitch ? monthSwitchHTML(switchSuffix) : ''}${summaryInlineHTML()}${budgetHTML}</div>`;
 }
 
 // ---------- 空态 ----------
@@ -220,7 +220,7 @@ function filterBarHTML() {
 }
 
 function renderHome() {
-  return `<div class="page">${headSummaryCardHTML(true)}${quickCardHTML()}${filterBarHTML()}<div id="txList">${txListHTML()}</div></div>`;
+  return `<div class="page">${headSummaryCardHTML(true, true, 'Home')}${quickCardHTML()}${filterBarHTML()}<div id="txList">${txListHTML()}</div></div>`;
 }
 
 function txListHTML() {
