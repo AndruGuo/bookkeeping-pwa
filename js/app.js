@@ -609,25 +609,33 @@ function renderStats() {
 
 // ---------- 分类管理 ----------
 function renderCategories() {
-  const list = state.categories;
-  const head = ``; // 顶部黄色由 html 底色保证，不再放空黄条
-  const rows = list.map((c) => {
-    return `
-      <div class="tx-item">
-        <span class="tx-icon">${iconEmoji(c.icon)}</span>
-        <span class="tx-info">
-          <span class="name">${esc(c.name)}</span>
-          <span class="note">${c.isSystem ? '内置分类' : (c.type === EXPENSE ? '支出' : '收入')}</span>
-        </span>
-        ${c.isSystem
-          ? '<span class="muted" style="font-size:12px">不可删除</span>'
-          : `<button class="text-btn" data-delcat="${c.id}">删除</button>`}
+  const counts = {};
+  for (const t of state.transactions) counts[t.categoryId] = (counts[t.categoryId] || 0) + 1;
+  const section = (type, label) => {
+    const list = state.categories
+      .filter((c) => c.type === type)
+      .sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id));
+    if (!list.length) return '';
+    const tiles = list.map((c, i) => {
+      const n = counts[c.id] || 0;
+      return `
+      <div class="cat-tile" data-catview="${c.id}" style="animation-delay:${Math.min(i, 7) * 0.04}s">
+        ${c.isSystem ? '' : `<button class="cat-del" data-delcat="${c.id}" aria-label="删除${esc(c.name)}">×</button>`}
+        <span class="cat-tile-icon ${type === INCOME ? 'income' : ''}">${iconEmoji(c.icon)}</span>
+        <span class="cat-tile-name">${esc(c.name)}</span>
+        <span class="cat-tile-note">${n ? `共 ${n} 笔` : '未使用'}</span>
       </div>`;
-  }).join('');
+    }).join('');
+    return `
+      <div class="section-title" style="margin-top:10px">${label} · ${list.length} 个</div>
+      <div class="cat-grid">${tiles}</div>`;
+  };
   return `<div class="page">
-    ${head}
     <button class="btn-block primary" id="addCatBtn" style="margin-top:calc(var(--safe-top) + 14px)">＋ 新建分类</button>
-    <div class="card" style="padding:0">${rows || '<div class="empty">暂无分类</div>'}</div>
+    ${section(EXPENSE, '支出')}
+    ${section(INCOME, '收入')}
+    ${state.categories.length ? '' : '<div class="empty">暂无分类</div>'}
+    <p class="status-text">点分类可查看该分类的账单。内置分类不可删除；删除自定义分类后，该分类下的账单会显示为「未知分类」。</p>
   </div>`;
 }
 
@@ -895,6 +903,15 @@ function bindPageEvents() {
       if (await confirmDialog(used ? '该分类下已有账单，删除后账单将显示为「未知分类」，确定删除？' : '确定删除该分类？')) {
         await cloudAction(() => cloud.deleteCategory(id), '已删除');
       }
+    });
+  });
+
+  // 分类宫格：点分类查看该分类本月账单（× 删除按钮不触发）
+  container.querySelectorAll('[data-catview]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-delcat]')) return;
+      state.filter = { q: '', cat: el.dataset.catview, scope: 'month' };
+      switchTab('home');
     });
   });
 
