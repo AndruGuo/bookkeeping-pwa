@@ -24,7 +24,7 @@ html, body { height: 100%; }
 /* 下拉回弹露出的顶部底色：只铺视口顶部一条，底部永远白色 */
 body.overscroll-yellow {
   background-image: linear-gradient(var(--primary), var(--primary));
-  background-size: 100% 300px;
+  background-size: 100% calc(var(--safe-top) + 60px); /* 只盖状态栏+头部一小段，不再从内容缝隙里漏黄 */
   background-position: top;
   background-repeat: no-repeat;
   background-attachment: fixed;
