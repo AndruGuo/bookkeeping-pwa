@@ -610,7 +610,7 @@ function renderStats() {
 // ---------- 分类管理 ----------
 function renderCategories() {
   const list = state.categories;
-  const head = `<div class="home-head" style="padding-top:calc(var(--safe-top) + 8px)"><div style="font-size:21px;font-weight:700">分类管理</div></div>`;
+  const head = `<div class="home-head" style="padding-top:calc(var(--safe-top) + 12px);padding-bottom:12px"></div>`;
   const rows = list.map((c) => {
     return `
       <div class="tx-item">
