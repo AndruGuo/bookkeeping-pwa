@@ -2,10 +2,10 @@
   "name": "记账本",
   "short_name": "记账本",
   "description": "黄白扁平风格记账应用",
-  "start_url": "./index.html?v=31",
+  "start_url": "./index.html?v=106",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#FFFFFF",
+  "background_color": "#FFD835",
   "theme_color": "#FFD835",
   "lang": "zh-CN",
   "icons": [
@@ -22,8 +22,7 @@
     {
       "src": "icons/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     }
   ]
 }
