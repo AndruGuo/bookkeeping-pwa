@@ -1420,6 +1420,9 @@ async function initAndRender() {
     showAuthScreen();
     return;
   }
+  // 顶部涂黄：冷启动已登录直达首页，不经 showAuthScreen/switchTab，
+  // 此处不加 overscroll-yellow 会透出约 12px 白边（首页与分类页同理）
+  document.body.classList.add('overscroll-yellow');
   document.querySelector('.tab-bar').classList.remove('hidden');
   document.body.classList.remove('auth-mode');
   const _bh = document.getElementById('bootHideTab');
