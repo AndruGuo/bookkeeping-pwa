@@ -610,7 +610,7 @@ function renderStats() {
 // ---------- 分类管理 ----------
 function renderCategories() {
   const list = state.categories;
-  const head = `<div class="home-head" style="padding-top:calc(var(--safe-top) + 12px);padding-bottom:12px"></div>`;
+  const head = ``; // 顶部黄色由 html 底色保证，不再放空黄条
   const rows = list.map((c) => {
     return `
       <div class="tx-item">
@@ -626,7 +626,7 @@ function renderCategories() {
   }).join('');
   return `<div class="page">
     ${head}
-    <button class="btn-block primary" id="addCatBtn" style="margin-top:14px">＋ 新建分类</button>
+    <button class="btn-block primary" id="addCatBtn" style="margin-top:calc(var(--safe-top) + 14px)">＋ 新建分类</button>
     <div class="card" style="padding:0">${rows || '<div class="empty">暂无分类</div>'}</div>
   </div>`;
 }
