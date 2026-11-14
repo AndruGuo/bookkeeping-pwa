@@ -7,7 +7,7 @@ const ASSETS = [
   './manifest.json',
   './js/util.js',
   './js/cloud.js',
-  './js/app.js?v=110',
+  './js/app.js?v=108',
   './js/sw-register.js',
   './js/vendor/chart.umd.js',
   './icons/icon-192.png',

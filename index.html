@@ -58,7 +58,7 @@ body.overscroll-yellow {
   background-size: 100% calc(var(--safe-top) + 60px); /* 只盖状态栏+头部一小段，不再从内容缝隙里漏黄 */
   background-position: top;
   background-repeat: no-repeat;
-  /* 不用 background-attachment: fixed：iOS Safari 上不可靠，且 body 本身不滚动（滚动的是 .page-container），fixed 是多余的 */
+  background-attachment: fixed;
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
@@ -126,11 +126,10 @@ body.auth-mode .tab-bar { display: none !important; }
   display: flex; align-items: center; justify-content: center;
   padding-bottom: 4px; /* ‹ › 字形偏上，光学居中 */
 }
-.head-summary { display: flex; margin-top: 6px; }
+.head-summary { display: flex; margin-top: 4px; }
 .head-summary > div { flex: 1; }
-.head-summary > div + div { border-left: 1px solid rgba(0,0,0,0.14); padding-left: 18px; }
 .head-summary .hl { font-size: 13px; color: var(--ink2); }
-.head-summary .hv { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.head-summary .hv { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .head-summary .hv small { font-size: 13px; font-weight: 600; }
 
 /* ---------- 页面容器 ---------- */
@@ -140,19 +139,18 @@ body.auth-mode .tab-bar { display: none !important; }
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
-  padding: 0 16px 24px; /* 顶部 padding 必须为 0：12px 会在黄色头部上方露出一道白边（v108 的 body 渐变在 iOS 上盖不住）；黄头自带 safe-top 内边距 */
+  padding: 12px 16px 24px;
 }
 .page.no-head { padding-top: calc(var(--safe-top) + 12px);
   background: var(--bg);
   overflow-x: hidden;
 }
 .page { max-width: 560px; margin: 0 auto; animation: pageIn 0.28s cubic-bezier(0.2, 0.7, 0.3, 1); }
-@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } } /* v110：去掉 translateY(8px)，入场下移瞬间会露白 */
+@keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ---------- 白色圆角卡片（无阴影或极浅） ---------- */
 .card {
   background: var(--card);
-  border: 1px solid var(--sep);
   border-radius: var(--radius-lg);
   padding: 16px; margin-bottom: 12px;
 }
@@ -167,7 +165,7 @@ body.auth-mode .tab-bar { display: none !important; }
 
 /* ---------- 快捷入口（白色圆角卡 + 黄色描线图标） ---------- */
 .quick-card {
-  background: #fff; border: 1px solid var(--sep); border-radius: var(--radius-lg);
+  background: #fff; border-radius: var(--radius-lg);
   padding: 14px 4px 12px; margin-bottom: 4px;
   display: flex;
 }
@@ -328,40 +326,9 @@ body.auth-mode .tab-bar { display: none !important; }
 .icon-cell.small { font-size: 18px; }
 .icon-cell.small svg { width: 22px; height: 22px; }
 
-/* ---------- 分类管理：宫格 ---------- */
-.cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.cat-tile {
-  position: relative;
-  background: var(--card); border: 1px solid var(--sep); border-radius: var(--radius);
-  padding: 14px 4px 12px;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  cursor: pointer;
-  animation: tileIn 0.3s ease backwards;
-}
-@keyframes tileIn { from { opacity: 0; transform: translateY(6px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.cat-tile:active { transform: scale(0.96); }
-.cat-tile-icon {
-  width: 46px; height: 46px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--primary); color: var(--ink); flex-shrink: 0;
-}
-.cat-tile-icon svg { width: 26px; height: 26px; }
-.cat-tile-icon.income { background: var(--card); border: 2px solid var(--ink); }
-.cat-tile-name { font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; }
-.cat-tile-note { font-size: 11px; color: var(--ink3); line-height: 1; }
-.cat-del {
-  position: absolute; top: 6px; right: 6px;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--sep); color: var(--ink2);
-  font-size: 14px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.12s ease, opacity 0.12s ease;
-}
-.cat-del:active { transform: scale(0.85); opacity: 0.7; }
-
 /* ---------- 列表卡片行（设置/分类管理：箭头行 + 细分隔线） ---------- */
 .list-card {
-  background: #fff; border: 1px solid var(--sep); border-radius: var(--radius-lg);
+  background: #fff; border-radius: var(--radius-lg);
   overflow: hidden; margin-bottom: 12px;
 }
 .list-row {
@@ -393,12 +360,11 @@ body.auth-mode .tab-bar { display: none !important; }
   border: none; outline: none; text-align: right; flex: 1;
   background: transparent; font-size: 16px; min-width: 0;
 }
-.form-group { border: 1px solid var(--sep); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; background: #fff; }
+.form-group { border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; background: #fff; }
 .form-group .form-row:last-child { border-bottom: none; }
 .btn-block {
   display: block; width: 100%; padding: 14px;
   background: #fff; color: var(--ink);
-  border: 1px solid var(--sep);
   border-radius: var(--radius-lg); font-size: 16px; font-weight: 600;
   margin-bottom: 12px; text-align: center;
   transition: transform 0.12s ease, opacity 0.12s ease;
@@ -490,7 +456,7 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom)); /* 与 .page-container 预留一致，菜单栏填满安全区、贴合内容区（v110 修复底部 23px 白带） */
+  height: calc(var(--tab-h) + var(--safe-bottom));
   display: flex; align-items: center;
   padding-bottom: var(--safe-bottom);
   background: #fff;
@@ -517,7 +483,6 @@ body.auth-mode .tab-bar { display: none !important; }
   display: flex; align-items: center; justify-content: center; border: none;
   border-radius: 50%; background: var(--primary); color: var(--ink);
   flex-shrink: 0; align-self: center;
-  box-shadow: 0 4px 12px rgba(255, 196, 0, 0.45);
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .tab-add:active { transform: scale(0.9); }
@@ -605,61 +570,6 @@ body.auth-mode .tab-bar { display: none !important; }
 /* 减少动效偏好 */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
-
-/* ---------- 深色模式（跟随系统） ---------- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #F2F2F2;
-    --ink2: #B3B3B3;
-    --ink3: #8A8A8A;
-    --bg: #161616;
-    --card: #1F1F1F;
-    --sep: #2C2C2C;
-    color-scheme: dark;
-  }
-  /* 黄色头部保持黄色，上面文字保持深色 */
-  .nav-bar, .home-head, .profile-head { color: #222; }
-  .home-head .head-summary .hl, .profile-head .profile-stats .pl { color: #555; }
-  .nav-avatar, .avatar { border-color: #222; }
-  /* 黄底元素上的文字一律深色 */
-  .tx-icon, .rank-num.top, .seg.active, .seg-sm button.active,
-  .btn-block.primary, .dialog-btn.danger, .tab-add,
-  .pull-loader .ok-ic, .date-chips .chip.active { color: #222; }
-  .cat-tile-icon:not(.income) { color: #222; } /* 支出 tile 黄底圆标，深色描边才看得清 */
-  .icon-cell.selected { border-color: #222; }
-  .icon-cell.selected svg, .icon-cell.selected span { color: #222; }
-  .list-row .row-icon svg { color: #222; }
-  /* 白色卡片与表单改为深色 */
-  .card, .list-card, .form-group, .quick-card, .sheet, .dialog,
-  .form-row, .list-row, .btn-block { background: var(--card); }
-  .filter-bar input[type="search"], .filter-selects select,
-  .seg-tabs, .seg-sm { background: #2A2A2A; }
-  .icon-cell { background: var(--card); }
-  .tab-bar { background: #1C1C1C; border-top-color: var(--sep); }
-  .tab-item .tab-icon svg .ic-fill { fill: #1C1C1C; }
-  .tx-item:active, .list-row:active { background: #262626; }
-  .dialog-btn:active { background: #262626; }
-  .rank-bar { background: #2A2A2A; }
-  .rank-num { background: #2A2A2A; }
-  .qa, .mini-btn { background: #2E2A12; }
-  .date-chips .chip { background: #2A2A2A; }
-  .offline-banner { background: #000; }
-  .toast { background: #F2F2F2; color: #222; }
-  .pull-loader { color: rgba(255,255,255,0.55); }
-  .pull-loader .spinner { border-color: rgba(255,255,255,0.15); border-top-color: rgba(255,255,255,0.6); }
-  .sheet::before { background: #333; }
-  /* 热力图深色档位 */
-  .hm-cell { background: #262626; }
-  .hm-cell.lv1 { background: #3D3200; }
-  .hm-cell.lv2 { background: #5C4A00; }
-  .hm-cell.lv3 { background: #7A6200; }
-  .hm-cell.lv4 { background: #FFC400; color: #222; }
-  .hm-dot { background: #262626; }
-  .hm-dot.lv1 { background: #3D3200; }
-  .hm-dot.lv2 { background: #5C4A00; }
-  .hm-dot.lv3 { background: #7A6200; }
-  .hm-dot.lv4 { background: #FFC400; }
 }
 
 </style>
