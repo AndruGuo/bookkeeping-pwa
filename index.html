@@ -16,8 +16,8 @@
   }
 }catch(e){}</script>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.andru.de5.net; frame-ancestors 'none'">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -126,10 +126,11 @@ body.auth-mode .tab-bar { display: none !important; }
   display: flex; align-items: center; justify-content: center;
   padding-bottom: 4px; /* ‹ › 字形偏上，光学居中 */
 }
-.head-summary { display: flex; margin-top: 4px; }
+.head-summary { display: flex; margin-top: 6px; }
 .head-summary > div { flex: 1; }
+.head-summary > div + div { border-left: 1px solid rgba(0,0,0,0.14); padding-left: 18px; }
 .head-summary .hl { font-size: 13px; color: var(--ink2); }
-.head-summary .hv { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.head-summary .hv { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .head-summary .hv small { font-size: 13px; font-weight: 600; }
 
 /* ---------- 页面容器 ---------- */
@@ -151,6 +152,7 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 白色圆角卡片（无阴影或极浅） ---------- */
 .card {
   background: var(--card);
+  border: 1px solid var(--sep);
   border-radius: var(--radius-lg);
   padding: 16px; margin-bottom: 12px;
 }
@@ -165,7 +167,7 @@ body.auth-mode .tab-bar { display: none !important; }
 
 /* ---------- 快捷入口（白色圆角卡 + 黄色描线图标） ---------- */
 .quick-card {
-  background: #fff; border-radius: var(--radius-lg);
+  background: #fff; border: 1px solid var(--sep); border-radius: var(--radius-lg);
   padding: 14px 4px 12px; margin-bottom: 4px;
   display: flex;
 }
@@ -328,7 +330,7 @@ body.auth-mode .tab-bar { display: none !important; }
 
 /* ---------- 列表卡片行（设置/分类管理：箭头行 + 细分隔线） ---------- */
 .list-card {
-  background: #fff; border-radius: var(--radius-lg);
+  background: #fff; border: 1px solid var(--sep); border-radius: var(--radius-lg);
   overflow: hidden; margin-bottom: 12px;
 }
 .list-row {
@@ -360,11 +362,12 @@ body.auth-mode .tab-bar { display: none !important; }
   border: none; outline: none; text-align: right; flex: 1;
   background: transparent; font-size: 16px; min-width: 0;
 }
-.form-group { border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; background: #fff; }
+.form-group { border: 1px solid var(--sep); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; background: #fff; }
 .form-group .form-row:last-child { border-bottom: none; }
 .btn-block {
   display: block; width: 100%; padding: 14px;
   background: #fff; color: var(--ink);
+  border: 1px solid var(--sep);
   border-radius: var(--radius-lg); font-size: 16px; font-weight: 600;
   margin-bottom: 12px; text-align: center;
   transition: transform 0.12s ease, opacity 0.12s ease;
@@ -483,6 +486,7 @@ body.auth-mode .tab-bar { display: none !important; }
   display: flex; align-items: center; justify-content: center; border: none;
   border-radius: 50%; background: var(--primary); color: var(--ink);
   flex-shrink: 0; align-self: center;
+  box-shadow: 0 4px 12px rgba(255, 196, 0, 0.45);
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .tab-add:active { transform: scale(0.9); }
@@ -572,6 +576,60 @@ body.auth-mode .tab-bar { display: none !important; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
+/* ---------- 深色模式（跟随系统） ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #F2F2F2;
+    --ink2: #B3B3B3;
+    --ink3: #8A8A8A;
+    --bg: #161616;
+    --card: #1F1F1F;
+    --sep: #2C2C2C;
+    color-scheme: dark;
+  }
+  /* 黄色头部保持黄色，上面文字保持深色 */
+  .nav-bar, .home-head, .profile-head { color: #222; }
+  .home-head .head-summary .hl, .profile-head .profile-stats .pl { color: #555; }
+  .nav-avatar, .avatar { border-color: #222; }
+  /* 黄底元素上的文字一律深色 */
+  .tx-icon, .rank-num.top, .seg.active, .seg-sm button.active,
+  .btn-block.primary, .dialog-btn.danger, .tab-add,
+  .pull-loader .ok-ic, .date-chips .chip.active { color: #222; }
+  .icon-cell.selected { border-color: #222; }
+  .icon-cell.selected svg, .icon-cell.selected span { color: #222; }
+  .list-row .row-icon svg { color: #222; }
+  /* 白色卡片与表单改为深色 */
+  .card, .list-card, .form-group, .quick-card, .sheet, .dialog,
+  .form-row, .list-row, .btn-block { background: var(--card); }
+  .filter-bar input[type="search"], .filter-selects select,
+  .seg-tabs, .seg-sm { background: #2A2A2A; }
+  .icon-cell { background: var(--card); }
+  .tab-bar { background: #1C1C1C; border-top-color: var(--sep); }
+  .tab-item .tab-icon svg .ic-fill { fill: #1C1C1C; }
+  .tx-item:active, .list-row:active { background: #262626; }
+  .dialog-btn:active { background: #262626; }
+  .rank-bar { background: #2A2A2A; }
+  .rank-num { background: #2A2A2A; }
+  .qa, .mini-btn { background: #2E2A12; }
+  .date-chips .chip { background: #2A2A2A; }
+  .offline-banner { background: #000; }
+  .toast { background: #F2F2F2; color: #222; }
+  .pull-loader { color: rgba(255,255,255,0.55); }
+  .pull-loader .spinner { border-color: rgba(255,255,255,0.15); border-top-color: rgba(255,255,255,0.6); }
+  .sheet::before { background: #333; }
+  /* 热力图深色档位 */
+  .hm-cell { background: #262626; }
+  .hm-cell.lv1 { background: #3D3200; }
+  .hm-cell.lv2 { background: #5C4A00; }
+  .hm-cell.lv3 { background: #7A6200; }
+  .hm-cell.lv4 { background: #FFC400; color: #222; }
+  .hm-dot { background: #262626; }
+  .hm-dot.lv1 { background: #3D3200; }
+  .hm-dot.lv2 { background: #5C4A00; }
+  .hm-dot.lv3 { background: #7A6200; }
+  .hm-dot.lv4 { background: #FFC400; }
+}
+
 </style>
 </head>
 <body>
@@ -653,6 +711,7 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=105"></script>
+<script type="module" src="js/app.js?v=106"></script>
 </body>
 </html>
+
