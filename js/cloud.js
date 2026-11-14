@@ -156,10 +156,13 @@ async function apiRaw(path, opts = {}) {
   return { ok: res.ok, status: res.status, json };
 }
 
-// 可排队（可重试）的失败：网络错误/超时/5xx。4xx 视为业务错误，立即抛给 UI
-function isRetryable(r) { return r.network || r.status >= 500; }
+// 可排队（可重试）的失败：网络错误/超时/5xx，以及 401/403 鉴权失败。
+// 401/403 不可丢弃：token 过期时丢弃等于丢账；应保留在队列，待重新登录后补传。
+// 鉴权失败由 errFrom 转成 NOAUTH，触发重新登录。
+function isRetryable(r) { return r.network || r.status >= 500 || r.status === 401 || r.status === 403; }
 function errFrom(r) {
   if (r.noauth) return new Error('NOAUTH');
+  if (r.status === 401 || r.status === 403) return new Error('NOAUTH');
   if (r.network) return new Error('网络不可用，请检查网络连接');
   return new Error(`云端请求失败 (${r.status})`);
 }
@@ -414,3 +417,4 @@ export async function deleteCategory(id) {
   const p = loadPending(); p.catDeletes.push(id); savePending(p);
   updateCache((c) => { c.categories = c.categories.filter((x) => x.id !== id); });
 }
+
