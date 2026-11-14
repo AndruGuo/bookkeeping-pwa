@@ -1,14 +1,13 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v105';
+const CACHE_NAME = 'bookkeep-v106';
 const ASSETS = [
   './',
   './index.html',
   './assets/avatar.png',
   './manifest.json',
-  './css/style.css',
   './js/util.js',
   './js/cloud.js',
-  './js/app.js',
+  './js/app.js?v=106',
   './js/sw-register.js',
   './js/vendor/chart.umd.js',
   './icons/icon-192.png',
@@ -67,3 +66,4 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
