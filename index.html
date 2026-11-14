@@ -140,7 +140,7 @@ body.auth-mode .tab-bar { display: none !important; }
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
-  padding: 12px 16px 24px;
+  padding: 0 16px 24px; /* 顶部 padding 必须为 0：12px 会在黄色头部上方露出一道白边（v108 的 body 渐变在 iOS 上盖不住）；黄头自带 safe-top 内边距 */
 }
 .page.no-head { padding-top: calc(var(--safe-top) + 12px);
   background: var(--bg);
@@ -743,7 +743,7 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=108"></script>
+<script type="module" src="js/app.js?v=109"></script>
 </body>
 </html>
 
