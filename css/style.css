@@ -462,8 +462,8 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom)); /* 白垫方案：30px图标区 + 安全区白底盖住系统白带（路线B） */
-  display: flex; align-items: flex-start;
+  height: calc(var(--tab-h) + var(--safe-bottom)); /* 白垫方案（京东式）：图标行紧贴安全区上缘 */
+  display: flex; align-items: flex-end;
   padding-bottom: var(--safe-bottom);
   background: #fff;
   border-top: 1px solid var(--sep);
