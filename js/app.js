@@ -1455,38 +1455,63 @@ async function initAndRender() {
 init();
 
 
-/* ===== v126 调试层：底部区域标识（诊断用，发布前删除） ===== */
+/* ===== v128 调试层：区域小标题版（诊断用，发布前删除） ===== */
 (function () {
+  function tag(text, color) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;z-index:100000;font:bold 12px/1 -apple-system,sans-serif;color:#fff;background:' + color + ';padding:5px 8px;border-radius:6px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.4)';
+    t.textContent = text;
+    document.body.appendChild(t);
+    return t;
+  }
   function up() {
     try {
       var bar = document.querySelector('.tab-bar');
       var pc = document.querySelector('.page-container');
-      if (bar) bar.id = 'dbgTab';
-      if (pc) pc.id = 'dbgPage';
+      if (bar) bar.id = 'dbgTab'; else document.getElementById('dbgTab')?.removeAttribute('id');
+      if (pc) pc.id = 'dbgPage'; else document.getElementById('dbgPage')?.removeAttribute('id');
       document.body.id = 'dbgBody';
+      // 区域小标题
+      var t1 = document.getElementById('tagBar'), t2 = document.getElementById('tagPage');
+      if (bar) {
+        var r = bar.getBoundingClientRect();
+        if (!t1) { t1 = tag('', '#e11'); t1.id = 'tagBar'; }
+        t1.style.left = (r.left + 4) + 'px';
+        t1.style.top = Math.max(2, r.top - 18) + 'px';
+        t1.textContent = '🔴 菜单栏 高' + Math.round(r.height) + 'px 距底' + Math.round(innerHeight - r.bottom) + 'px';
+      }
+      if (pc) {
+        var pr = pc.getBoundingClientRect();
+        if (!t2) { t2 = tag('', '#06c'); t2.id = 'tagPage'; }
+        t2.style.left = (pr.left + 4) + 'px';
+        t2.style.top = (pr.top + 2) + 'px';
+        t2.textContent = '🔵 内容区 底边' + Math.round(pr.bottom);
+      }
+      // 探测点标记：右侧编号圆点，白块位置一眼可见
+      var w = Math.round(innerWidth / 2);
+      var pts = [[innerHeight - 2, '1'], [innerHeight - 20, '2'], [innerHeight - 45, '3'], [innerHeight - 70, '4']];
+      pts.forEach(function (pt, i) {
+        var m = document.getElementById('probe' + i);
+        if (!m) { m = document.createElement('div'); m.id = 'probe' + i;
+          m.style.cssText = 'position:fixed;right:2px;z-index:100000;width:18px;height:18px;border-radius:50%;background:#000;color:#0f0;font:bold 11px/18px monospace;text-align:center;pointer-events:none;border:1px solid #0f0';
+          document.body.appendChild(m); }
+        m.style.top = (pt[0] - 9) + 'px';
+        var el = document.elementFromPoint(w, pt[0]);
+        var name = el ? (el.tagName + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : '')) : '空';
+        var cs2 = el ? getComputedStyle(el) : null;
+        m.textContent = pt[1];
+        m.title = name;
+        // 编号 → 面板
+        m.dataset.info = pt[1] + '号点(y-' + (innerHeight - pt[0]) + '): ' + name + (cs2 ? ' 白?' + (cs2.backgroundColor === 'rgb(255, 255, 255)' ? '是' : '否') : '');
+      });
+      // 顶部汇总面板
       var vv = window.visualViewport;
       var sb = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom').trim();
-      var info = [
-        'innerH=' + innerHeight,
-        'visualH=' + (vv ? Math.round(vv.height) : '?'),
-        'vvTop=' + (vv ? Math.round(vv.offsetTop) : '?'),
-        'sb=' + sb,
-        'tabH=' + getComputedStyle(document.documentElement).getPropertyValue('--tab-h').trim()
-      ];
-      if (bar) { var r = bar.getBoundingClientRect();
-        info.push('barBottom=' + Math.round(r.bottom), 'barGap=' + Math.round(innerHeight - r.bottom), 'barH=' + Math.round(r.height)); }
-      if (pc) { info.push('pageBottom=' + Math.round(pc.getBoundingClientRect().bottom)); }
-      // 元素侦探：屏幕底部若干探测点上是什么元素
-      var w = Math.round(innerWidth / 2);
-      [[innerHeight - 2, 'bottom-2'], [innerHeight - 20, 'bottom-20'], [innerHeight - 45, 'bottom-45'], [innerHeight - 70, 'bottom-70']].forEach(function (pt) {
-        var el = document.elementFromPoint(w, pt[0]);
-        var d = el ? (el.tagName + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : '')) : 'null';
-        var cs2 = el ? getComputedStyle(el) : null;
-        info.push(pt[1] + '=' + d + (cs2 ? '(bg:' + cs2.backgroundColor + ',z:' + cs2.zIndex + ')' : ''));
-      });
+      var lines = ['sb=' + sb, 'innerH=' + innerHeight];
+      for (var i = 0; i < 4; i++) { var mm = document.getElementById('probe' + i); if (mm) lines.push(mm.dataset.info); }
       var p = document.getElementById('dbgPanel');
       if (!p) { p = document.createElement('div'); p.id = 'dbgPanel'; document.body.appendChild(p); }
-      p.textContent = info.join('\n');
+      p.textContent = lines.join('\n');
     } catch (e) {}
     requestAnimationFrame(up);
   }
