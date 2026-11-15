@@ -504,11 +504,12 @@ body.auth-mode .tab-bar { display: none !important; }
   transition: color 0.15s ease, transform 0.1s ease;
 }
 .tab-item:active { transform: scale(0.94); }
-/* v120：底栏 30px 紧凑版，只显示图标不显示文字 */
-.tab-item > span:last-child { display: none; }
-.tab-icon svg { width: 20px; height: 20px; }
-.tab-add { width: 34px; height: 34px; margin: 0 6px 0; }
-.tab-add svg { width: 22px; height: 22px; }
+/* v136：底栏 44px，恢复图标+文字 */
+.tab-item { gap: 1px; }
+.tab-icon svg { width: 22px; height: 22px; }
+.tab-item > span:last-child { font-size: 10px; line-height: 1; }
+.tab-add { width: 40px; height: 40px; margin: 0 6px 0; }
+.tab-add svg { width: 24px; height: 24px; }
 .tab-item.active { color: var(--ink); font-weight: 600; }
 .tab-icon svg { width: 26px; height: 26px; display: block; }
 .tab-icon { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -762,7 +763,7 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=135"></script>
+<script type="module" src="js/app.js?v=136"></script>
 
 </body>
 </html>
