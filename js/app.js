@@ -821,6 +821,7 @@ function renderSettings() {
     <div class="card" style="padding:0">${recurringRowsHTML()}</div>
     <button class="btn-block primary" id="addRecurBtn">＋ 添加周期模板</button>
     <div class="list-card">
+      <button class="list-row" id="clearCacheBtn"><span class="row-icon">${ic('<path d="M4 4h16v4H4zM6 8v11a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8M10 12h4"/>')}</span><span class="row-label">清理缓存（更新到最新版）</span><span class="arrow">›</span></button>
       <button class="list-row" id="logoutBtn"><span class="row-icon">${ic('<path d="M15 12H4m0 0l3.5-3.5M4 12l3.5 3.5"/><path d="M12 4h5.5A1.5 1.5 0 0 1 19 5.5v13a1.5 1.5 0 0 1-1.5 1.5H12"/>')}</span><span class="row-label">退出登录</span><span class="arrow">›</span></button>
     </div>
     <div class="status-text">记账本 PWA <span id="swVersion"></span> · 数据模型与 iOS 版一致，金额以「分」存储。数据保存在云端，可随时导出备份。</div>
@@ -992,6 +993,16 @@ function bindPageEvents() {
         }
       });
     }
+    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+      if (!(await confirmDialog('清理缓存并重新加载最新版本？'))) return;
+      try {
+        if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); }
+        const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
+        await Promise.all(regs.map((r) => r.unregister()));
+      } catch (e) {}
+      toast('✅ 缓存已清理，正在刷新…');
+      setTimeout(() => location.replace(location.pathname + '?cc=' + Date.now()), 600);
+    });
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       if (!(await confirmDialog('确定退出登录？'))) return;
       await cloud.logout();
