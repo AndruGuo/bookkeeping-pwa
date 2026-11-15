@@ -107,7 +107,7 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 页面容器 ---------- */
 .page-container {
   position: absolute; top: 0;
-  bottom: calc(var(--tab-h) + var(--safe-bottom));
+  bottom: var(--tab-h);
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
@@ -462,9 +462,8 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom)); /* 图标区30px固定 + 安全区自动算（无指示条机型=30，全面屏=30+34） */
-  display: flex; align-items: flex-start;
-  padding-bottom: var(--safe-bottom);
+  height: var(--tab-h); /* 纯30px，无安全区白垫（用户确认删除） */
+  display: flex; align-items: center;
   background: #fff;
   border-top: 1px solid var(--sep);
 }
