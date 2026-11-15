@@ -630,7 +630,7 @@ function renderCategories() {
       <div class="section-title" style="margin-top:10px">${label} · ${list.length} 个</div>
       <div class="cat-grid">${tiles}<div class="cat-tile cat-add" data-addcat="${type}" style="animation-delay:${Math.min(list.length, 7) * 0.04}s"><span class="cat-tile-icon">＋</span><span class="cat-tile-name">添加</span></div></div>`;
   };
-  return `<div class="page">
+  return `<div class="page cat-page">
     ${section(EXPENSE, '支出')}
     ${section(INCOME, '收入')}
     ${state.categories.length ? '' : '<div class="empty">暂无分类</div>'}
