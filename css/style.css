@@ -85,7 +85,7 @@ body.auth-mode .tab-bar { display: none !important; }
   background: var(--primary);
   margin: 0 calc(50% - 50vw) 0;
   width: 100vw;
-  padding: calc(var(--safe-top) + 6px) 16px 14px;
+  padding: 6px 16px 14px;
   max-width: 100vw;
 }
 .month-switch {
@@ -106,19 +106,19 @@ body.auth-mode .tab-bar { display: none !important; }
 
 /* ---------- 页面容器 ---------- */
 .page-container {
-  position: absolute; top: 0;
+  position: absolute; top: calc(var(--nav-h) + var(--safe-top));
   bottom: calc(var(--tab-h) + var(--safe-bottom));
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   padding: 0 16px 24px; /* 顶部 padding 必须为 0：12px 会在黄色头部上方露出一道白边（v108 的 body 渐变在 iOS 上盖不住）；黄头自带 safe-top 内边距 */
 }
-.page.no-head { padding-top: calc(var(--safe-top) + 12px);
+.page.no-head { padding-top: 12px;
   background: var(--bg);
   overflow-x: hidden;
 }
 .page { max-width: 560px; margin: 0 auto; animation: pageIn 0.28s cubic-bezier(0.2, 0.7, 0.3, 1); }
-.cat-page { padding-top: calc(var(--safe-top) + 14px); }
+.cat-page { padding-top: 14px; }
 @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } } /* v110：去掉 translateY(8px)，入场下移瞬间会露白 */
 
 /* ---------- 白色圆角卡片（无阴影或极浅） ---------- */
@@ -444,7 +444,7 @@ body.auth-mode .tab-bar { display: none !important; }
 .profile-head {
   background: var(--primary);
   margin: 0 -16px 0;
-  padding: calc(var(--safe-top) + 16px) 16px 18px;
+  padding: 16px 16px 18px;
 }
 .profile-row { display: flex; align-items: center; gap: 14px; padding-left: 26px; }
 .avatar {
