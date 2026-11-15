@@ -1453,3 +1453,34 @@ async function initAndRender() {
 }
 
 init();
+
+
+/* ===== v126 调试层：底部区域标识（诊断用，发布前删除） ===== */
+(function () {
+  function up() {
+    try {
+      var bar = document.querySelector('.tab-bar');
+      var pc = document.querySelector('.page-container');
+      if (bar) bar.id = 'dbgTab';
+      if (pc) pc.id = 'dbgPage';
+      document.body.id = 'dbgBody';
+      var vv = window.visualViewport;
+      var sb = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom').trim();
+      var info = [
+        'innerH=' + innerHeight,
+        'visualH=' + (vv ? Math.round(vv.height) : '?'),
+        'vvTop=' + (vv ? Math.round(vv.offsetTop) : '?'),
+        'sb=' + sb,
+        'tabH=' + getComputedStyle(document.documentElement).getPropertyValue('--tab-h').trim()
+      ];
+      if (bar) { var r = bar.getBoundingClientRect();
+        info.push('barBottom=' + Math.round(r.bottom), 'barGap=' + Math.round(innerHeight - r.bottom), 'barH=' + Math.round(r.height)); }
+      if (pc) { info.push('pageBottom=' + Math.round(pc.getBoundingClientRect().bottom)); }
+      var p = document.getElementById('dbgPanel');
+      if (!p) { p = document.createElement('div'); p.id = 'dbgPanel'; document.body.appendChild(p); }
+      p.textContent = info.join('\n');
+    } catch (e) {}
+    requestAnimationFrame(up);
+  }
+  up();
+})();

@@ -761,35 +761,8 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=125"></script>
+<script type="module" src="js/app.js?v=126"></script>
 
-<script>
-(function dbg(){
-  function up(){
-    var bar = document.querySelector('.tab-bar');
-    var pc = document.querySelector('.page-container');
-    if (bar) bar.id = 'dbgTab';
-    if (pc) pc.id = 'dbgPage';
-    document.body.id = 'dbgBody';
-    var sb = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom').trim();
-    var vv = window.visualViewport;
-    var info = [
-      'innerH=' + innerHeight,
-      'visualH=' + (vv ? Math.round(vv.height) : '?'),
-      'vvOffsetTop=' + (vv ? Math.round(vv.offsetTop) : '?'),
-      'sb=' + sb,
-      'tabH=' + getComputedStyle(document.documentElement).getPropertyValue('--tab-h').trim()
-    ];
-    if (bar) { var r = bar.getBoundingClientRect();
-      info.push('barBottom=' + Math.round(r.bottom), 'barGap=' + Math.round(innerHeight - r.bottom), 'barH=' + Math.round(r.height)); }
-    if (pc) { var pr = pc.getBoundingClientRect(); info.push('pageBottom=' + Math.round(pr.bottom)); }
-    var p = document.getElementById('dbgPanel');
-    if (!p) { p = document.createElement('div'); p.id = 'dbgPanel'; document.body.appendChild(p); }
-    p.textContent = info.join('\n');
-    requestAnimationFrame(up);
-  }
-  up();
-})();
-</script></body>
+</body>
 </html>
 
