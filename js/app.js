@@ -628,10 +628,9 @@ function renderCategories() {
     }).join('');
     return `
       <div class="section-title" style="margin-top:10px">${label} · ${list.length} 个</div>
-      <div class="cat-grid">${tiles}</div>`;
+      <div class="cat-grid">${tiles}<div class="cat-tile cat-add" data-addcat="${type}" style="animation-delay:${Math.min(list.length, 7) * 0.04}s"><span class="cat-tile-icon">＋</span><span class="cat-tile-name">添加</span></div></div>`;
   };
   return `<div class="page">
-    <button class="btn-block primary" id="addCatBtn" style="margin-top:calc(var(--safe-top) + 14px)">＋ 新建分类</button>
     ${section(EXPENSE, '支出')}
     ${section(INCOME, '收入')}
     ${state.categories.length ? '' : '<div class="empty">暂无分类</div>'}
@@ -915,8 +914,7 @@ function bindPageEvents() {
     });
   });
 
-  const addCatBtn = document.getElementById('addCatBtn');
-  if (addCatBtn) addCatBtn.addEventListener('click', showAddCategory);
+  container.querySelectorAll('.cat-add').forEach((el) => el.addEventListener('click', () => showAddCategory()));
 
   // 统计排行切换
   container.querySelectorAll('[data-rank]').forEach((el) => {
