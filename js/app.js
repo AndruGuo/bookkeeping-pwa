@@ -833,6 +833,7 @@ function render() {
   updateNav();
   destroyCharts();
   const container = document.getElementById('pageContainer');
+  if (!container) return; // 登录页等无容器场景直接返回
   if (state.tab === 'home') container.innerHTML = renderHome();
   else if (state.tab === 'stats') container.innerHTML = renderStats();
   else if (state.tab === 'categories') container.innerHTML = renderCategories();

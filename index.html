@@ -136,7 +136,7 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 页面容器 ---------- */
 .page-container {
   position: absolute; top: 0;
-  bottom: calc(var(--tab-h) + var(--safe-bottom));
+  bottom: var(--tab-h);
   left: 0; right: 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
@@ -491,10 +491,9 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom)); /* 菜单栏动态高度：30px图标区 + 动态安全区 */
-  display: flex; align-items: flex-start;
-  padding-bottom: var(--safe-bottom);
-  background: linear-gradient(to bottom, #fff calc(100% - var(--safe-bottom)), var(--primary) calc(100% - var(--safe-bottom))); /* 安全区段用页面黄，不要白块 */
+  height: var(--tab-h); /* 纯30px贴底，无安全区填充（用户确认去除1/2号点区域） */
+  display: flex; align-items: center;
+  background: #fff;
   border-top: 1px solid var(--sep);
 }
 .tab-item {
@@ -761,7 +760,7 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=128"></script>
+<script type="module" src="js/app.js?v=129"></script>
 
 </body>
 </html>
