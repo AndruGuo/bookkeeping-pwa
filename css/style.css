@@ -16,7 +16,7 @@
   --nav-h: 44px;
   --tab-h: 30px;
   --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: 0px; /* 用户要求不要底部安全区，硬编码为 0 */
+  --safe-bottom: env(safe-area-inset-bottom, 0px); /* 动态：浏览器 0，PWA 自动算 Home 指示条区 */
   color-scheme: light;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -461,8 +461,8 @@ body.auth-mode .tab-bar { display: none !important; }
 /* ---------- 底部标签栏 ---------- */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  height: calc(var(--tab-h) + var(--safe-bottom)); /* 与 .page-container 预留一致，菜单栏填满安全区、贴合内容区（v110 修复底部 23px 白带） */
-  display: flex; align-items: center;
+  height: calc(var(--tab-h) + var(--safe-bottom)); /* 图标区固定30px + 动态安全区白底 */
+  display: flex; align-items: flex-start;
   padding-bottom: var(--safe-bottom);
   background: #fff;
   border-top: 1px solid var(--sep);
