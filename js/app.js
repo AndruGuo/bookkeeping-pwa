@@ -1476,6 +1476,14 @@ init();
       if (bar) { var r = bar.getBoundingClientRect();
         info.push('barBottom=' + Math.round(r.bottom), 'barGap=' + Math.round(innerHeight - r.bottom), 'barH=' + Math.round(r.height)); }
       if (pc) { info.push('pageBottom=' + Math.round(pc.getBoundingClientRect().bottom)); }
+      // 元素侦探：屏幕底部若干探测点上是什么元素
+      var w = Math.round(innerWidth / 2);
+      [[innerHeight - 2, 'bottom-2'], [innerHeight - 20, 'bottom-20'], [innerHeight - 45, 'bottom-45'], [innerHeight - 70, 'bottom-70']].forEach(function (pt) {
+        var el = document.elementFromPoint(w, pt[0]);
+        var d = el ? (el.tagName + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : '')) : 'null';
+        var cs2 = el ? getComputedStyle(el) : null;
+        info.push(pt[1] + '=' + d + (cs2 ? '(bg:' + cs2.backgroundColor + ',z:' + cs2.zIndex + ')' : ''));
+      });
       var p = document.getElementById('dbgPanel');
       if (!p) { p = document.createElement('div'); p.id = 'dbgPanel'; document.body.appendChild(p); }
       p.textContent = info.join('\n');
