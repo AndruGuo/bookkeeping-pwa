@@ -3,18 +3,7 @@
 <head>
   <script>try{
   if(!localStorage.getItem('bk_token')){
-    document.write('<style id="bootHideTab">.tab-bar,#offlineBanner{display:none!important}
-/* ===== v124 调试层：底部分区标识（发布前删除） ===== */
-#dbgPanel {
-  position: fixed; left: 4px; top: calc(var(--safe-top) + 44px); z-index: 99999;
-  background: rgba(0,0,0,.82); color: #0f0; font: 11px/1.5 monospace;
-  padding: 6px 8px; border-radius: 8px; pointer-events: none; white-space: pre;
-}
-#dbgTab  { outline: 3px solid red !important; }
-#dbgPage { outline: 3px solid blue !important; }
-#dbgBody { outline: 3px dashed lime !important; }
-#dbgHtml { box-shadow: inset 0 0 0 3px magenta !important; }
-</style>');
+    document.write('<style id="bootHideTab">.tab-bar,#offlineBanner{display:none!important}</style>');
   } else {
     document.write('<style id="bootHideAuth">.page-container{visibility:hidden}</style>');
     // 兜底：3 秒后无论 JS 是否就绪都显示内容，避免慢网白屏
@@ -680,6 +669,17 @@ body.auth-mode .tab-bar { display: none !important; }
 }
 
 
+
+/* ===== v125 调试层：底部分区标识（发布前删除） ===== */
+#dbgPanel {
+  position: fixed; left: 4px; top: calc(var(--safe-top) + 44px); z-index: 99999;
+  background: rgba(0,0,0,.82); color: #0f0; font: 11px/1.5 monospace;
+  padding: 6px 8px; border-radius: 8px; pointer-events: none; white-space: pre;
+}
+#dbgTab  { outline: 3px solid red !important; }
+#dbgPage { outline: 3px solid blue !important; }
+#dbgBody { outline: 3px dashed lime !important; }
+
 </style>
 </head>
 <body>
@@ -761,14 +761,14 @@ body.auth-mode .tab-bar { display: none !important; }
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>
-<script type="module" src="js/app.js?v=124"></script>
+<script type="module" src="js/app.js?v=125"></script>
 
 <script>
 (function dbg(){
   function up(){
     var bar = document.querySelector('.tab-bar');
     var pc = document.querySelector('.page-container');
-    if (bar) bar.id = 'dbgTab'; else delete bar;
+    if (bar) bar.id = 'dbgTab';
     if (pc) pc.id = 'dbgPage';
     document.body.id = 'dbgBody';
     var sb = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom').trim();
