@@ -987,7 +987,10 @@ function bindPageEvents() {
       navigator.serviceWorker.controller.postMessage('get-version');
       navigator.serviceWorker.addEventListener('message', (e) => {
         if (typeof e.data === 'string' && e.data.startsWith('bookkeep-')) {
-          verEl.textContent = '(' + e.data.replace('bookkeep-', '') + ')';
+          var sb = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom');
+          var bar = document.querySelector('.tab-bar');
+          var barH = bar ? Math.round(bar.getBoundingClientRect().height) : '?';
+          verEl.textContent = '(' + e.data.replace('bookkeep-', '') + ' sb=' + (sb||'?').trim() + ' barH=' + barH + ')';
         }
       });
     }
