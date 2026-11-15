@@ -647,6 +647,6 @@ body.auth-mode .tab-bar { display: none !important; }
   background: rgba(0,0,0,.82); color: #0f0; font: 11px/1.5 monospace;
   padding: 6px 8px; border-radius: 8px; pointer-events: none; white-space: pre;
 }
-#dbgTab  { outline: 3px solid red !important; }
-#dbgPage { outline: 3px solid blue !important; }
-#dbgBody { outline: 3px dashed lime !important; }
+.dbgTab  { outline: 3px solid red !important; }
+.dbgPage { outline: 3px solid blue !important; }
+.dbgBody { outline: 3px dashed lime !important; }

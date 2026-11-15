@@ -1469,9 +1469,9 @@ init();
     try {
       var bar = document.querySelector('.tab-bar');
       var pc = document.querySelector('.page-container');
-      if (bar) bar.id = 'dbgTab'; else document.getElementById('dbgTab')?.removeAttribute('id');
-      if (pc) pc.id = 'dbgPage'; else document.getElementById('dbgPage')?.removeAttribute('id');
-      document.body.id = 'dbgBody';
+      if (bar) bar.classList.add('dbgTab');
+      if (pc) pc.classList.add('dbgPage');
+      document.body.classList.add('dbgBody');
       // 区域小标题
       var t1 = document.getElementById('tagBar'), t2 = document.getElementById('tagPage');
       if (bar) {
