@@ -114,8 +114,6 @@ function updateNav() {
   if (titleEl) titleEl.textContent = titles[state.tab] || '';
   document.getElementById('monthPrev').style.visibility = 'hidden'; // 月份切换只在黄色头部
   document.getElementById('monthNext').style.visibility = 'hidden';
-  const av = document.getElementById('navAvatarWrap');
-  if (av) av.style.visibility = (state.tab === 'home' || state.tab === 'settings') ? 'visible' : 'hidden';
 }
 
 // ---------- 黄色头部（月份切换 + 收入/支出汇总） ----------
