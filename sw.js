@@ -1,5 +1,5 @@
 // Service Worker：缓存静态资源，离线可用
-const CACHE_NAME = 'bookkeep-v142';
+const CACHE_NAME = 'bookkeep-v143';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const ASSETS = [
   './manifest.json',
   './js/util.js',
   './js/cloud.js',
-  './js/app.js?v=108',
+  './js/app.js?v=143',
   './js/sw-register.js',
   './js/vendor/chart.umd.js',
   './icons/icon-192.png',
